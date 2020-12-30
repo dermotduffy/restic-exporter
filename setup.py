@@ -12,6 +12,7 @@ setuptools.setup(
     author_email="dermot.duffy@gmail.com",
     description="Statistic exporter for restic backups",
     include_package_data=True,
+    install_requires=["attrs", "dateparser", "influxdb"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords="restic backup statistics",
