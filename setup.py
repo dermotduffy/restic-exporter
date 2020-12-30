@@ -7,10 +7,13 @@ with open("README.md") as fh:
 
 setuptools.setup(
     name="restic-exporter",
-    version="0.0.2",
+    version="0.0.3",
     author="Dermot Duffy",
     author_email="dermot.duffy@gmail.com",
     description="Statistic exporter for restic backups",
+    entry_points = {
+        "console_scripts": ["restic-exporter=restic_exporter.restic_exporter:main"],
+    },
     include_package_data=True,
     install_requires=["attrs", "dateparser", "influxdb"],
     long_description=long_description,
