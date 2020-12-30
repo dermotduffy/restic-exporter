@@ -139,9 +139,8 @@ def json_to_snapshot(snapshot_json: Dict[str, Any]) -> Optional[ResticSnapshot]:
         try:
             snapshot_time = dateutil_parser.parse(snapshot_time)
         except (TypeError, dateutil_parser.ParserError) as e:
-            _LOGGER.warning(f"Skipping unparseable snapshot time: {restic_time}")
+            _LOGGER.warning(f"Skipping unparseable snapshot time: {snapshot_time}")
             return
-        print(snapshot_json)
         return ResticSnapshot(
             key=ResticSnapshotKeys(
                 hostname=snapshot_json[KEY_SNAPSHOT_HOSTNAME],
