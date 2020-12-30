@@ -75,7 +75,7 @@ _LOGGER.level = logging.DEBUG
 # TODO restic args arbitrary (e.g. -r --repository_file)
 # TODO snapshot id from backup summary same in snapshots?
 # TODO verify consts, may need to rename a few.
-
+# TODO get restic tables as close to json output as possible.
 
 class ResticExecutor:
     def __init__(self, path_binary: str) -> None:
