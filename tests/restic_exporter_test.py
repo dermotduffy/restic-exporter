@@ -1,5 +1,5 @@
 #!/usr/bin/python
-"""Test for the Hyperion Client."""
+"""Test for the restic-exporter."""
 
 import json
 import os
