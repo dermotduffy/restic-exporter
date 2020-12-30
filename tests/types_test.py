@@ -67,24 +67,31 @@ def dict_without(data: Dict[str, Any], omit_key: str) -> Dict[str, Any]:
     return {k: data[k] for k in data if k != omit_key}
 
 def test_json_to_stats(caplog):
-    # Normal.
+    # Test: Normal.
     assert json_to_stats(
         {"total_size": 1709, "total_file_count": 1, "total_blob_count": 4}
     ) == ResticStats(total_size=1709, total_file_count=1, total_blob_count=4)
 
-    # Convert from floats.
+    # Test: Converting from floats.
     assert json_to_stats(
         {"total_size": 1709.0, "total_file_count": 1.0, "total_blob_count": 4.0}
     ) == ResticStats(total_size=1709, total_file_count=1, total_blob_count=4)
 
-    # Support None.
+    # Test: None is supported.
     assert json_to_stats(
         {"total_size": 1709.0, "total_file_count": 1.0, "total_blob_count": None}
     ) == ResticStats(total_size=1709, total_file_count=1, total_blob_count=None)
 
+    # Test: Negatives fail validation.
+    assert json_to_stats(
+        {"total_size": -1, "total_file_count": 1.0, "total_blob_count": None}) is None
+    assert "Expected positive number" in caplog.text
+
+    # Test: Missing keys result in a warning.
     assert json_to_stats({"foo": "bar"}) is None
     assert "Skipping restic stats with missing key" in caplog.text
 
+    # Test: Invalid values result in a warning.
     assert (
         json_to_stats(
             {"total_size": "str", "total_file_count": 1, "total_blob_count": 4}
@@ -93,10 +100,12 @@ def test_json_to_stats(caplog):
     )
     assert "Skipping restic stats with invalid value" in caplog.text
 
+    # Test: None -> None.
     assert json_to_stats(None) is None
 
 
 def test_json_to_snapshot(caplog):
+    # Test: Normal.
     assert json_to_snapshot(TEST_SNAPSHOT_DATA) == ResticSnapshot(
         ResticSnapshotKeys(
             hostname="hostname",
@@ -110,18 +119,22 @@ def test_json_to_snapshot(caplog):
         stats=None,
     )
 
-    assert json_to_snapshot({**TEST_SNAPSHOT_DATA, "time": "garbage"}) == None
-    assert "Skipping unparseable snapshot time" in caplog.text
-
+    # Test: Missing keys result in a warning.
     assert json_to_snapshot(dict_without(TEST_SNAPSHOT_DATA, "time")) == None
     assert "Skipping snapshot with missing key" in caplog.text
 
+    # Test: Invalid values result in a warning.
+    assert json_to_snapshot({**TEST_SNAPSHOT_DATA, "time": "garbage"}) == None
+    assert "Skipping unparseable snapshot time" in caplog.text
+
+    # Test: None -> None.
     assert json_to_snapshot(None) == None
 
 
 def test_json_to_backup_status(caplog):
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
 
+    # Test: Normal.
     assert json_to_backup_status(TEST_BACKUP_STATUS_DATA, key) == ResticBackupStatus(
         key=key,
         files_total=9586,
@@ -133,21 +146,25 @@ def test_json_to_backup_status(caplog):
         seconds_remaining=None,
     )
 
-    # Percent outside the range of 0-1.
+    # Test: Percent outside the range of 0-1.
     assert json_to_backup_status({**TEST_BACKUP_STATUS_DATA, "percent_done": 2.0}, key) == None
 
-    assert json_to_backup_status({**TEST_BACKUP_STATUS_DATA, "total_files": "garbage"}, key) == None
-    assert "Skipping backup status with invalid value" in caplog.text
-
+    # Test: Missing keys result in a warning.
     assert json_to_backup_status(dict_without(TEST_BACKUP_STATUS_DATA, "total_files"), key) == None
     assert "Skipping backup status with missing key" in caplog.text
 
+    # Test: Invalid values result in a warning.
+    assert json_to_backup_status({**TEST_BACKUP_STATUS_DATA, "total_files": "garbage"}, key) == None
+    assert "Skipping backup status with invalid value" in caplog.text
+
+    # Test: None -> None.
     assert json_to_backup_status(None, key) == None
 
 
 def test_json_to_backup_summary(caplog):
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
 
+    # Test: Normal.
     assert json_to_backup_summary(TEST_BACKUP_SUMMARY_DATA, key) == ResticBackupSummary(
         key=ResticSnapshotKeys(
             hostname="hostname",
@@ -166,10 +183,22 @@ def test_json_to_backup_summary(caplog):
         duration=4.035790225,
     )
 
-    assert json_to_backup_summary({**TEST_BACKUP_SUMMARY_DATA, "files_new": "garbage"}, key) == None
-    assert "Skipping backup summary with invalid value" in caplog.text
-
+    # Test: Missing keys result in a warning.
     assert json_to_backup_summary(dict_without(TEST_BACKUP_SUMMARY_DATA, "files_new"), key) == None
     assert "Skipping backup summary with missing key" in caplog.text
 
+    # Test: Invalid values result in a warning.
+    assert json_to_backup_summary({**TEST_BACKUP_SUMMARY_DATA, "files_new": "garbage"}, key) == None
+    assert "Skipping backup summary with invalid value" in caplog.text
+
+    # Test: None -> None.
     assert json_to_backup_summary(None, key) == None
+
+def test_restic_snapshot_keys_validation():
+
+    # Test: Normal.
+    assert ResticSnapshotKeys(hostname="hostname", paths=["path1"]) != None
+
+    # Test: Empty hostname should not be allowed.
+    with pytest.raises(ValueError) as ex:
+        assert ResticSnapshotKeys(hostname="", paths=["path1"]) is None
