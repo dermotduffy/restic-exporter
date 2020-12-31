@@ -214,7 +214,7 @@ class ResticBackupSummary:
     data_added: int = attr.ib(converter=int, validator=[validate_positive])
     files_processed: int = attr.ib(converter=int, validator=[validate_positive])
     bytes_processed: int = attr.ib(converter=int, validator=[validate_positive])
-    duration: int = attr.ib(converter=int, validator=[validate_positive])
+    duration: float = attr.ib(converter=float, validator=[validate_positive])
 
 
 def json_to_backup_summary(
