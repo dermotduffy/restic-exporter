@@ -254,30 +254,6 @@ def main():
     ap.add_argument(
         "exporters", nargs="+", help="Exporters to output to.", choices=EXPORTERS.keys()
     )
-    ap.add_argument(
-        "--influxdb-host",
-        default="localhost",
-        help="InfluxDB hostname",
-    )
-    ap.add_argument(
-        "--influxdb-port",
-        help="InfluxDB port",
-        type=int,
-        default=8086,
-    )
-    ap.add_argument(
-        "--influxdb-username",
-        help="InfluxDB user",
-    )
-    ap.add_argument(
-        "--influxdb-password-file",
-        help="InfluxDB password file.",
-    )
-    ap.add_argument(
-        "--influxdb-database",
-        default=DEFAULT_INFLUX_DATABASE,
-        help="InfluxDB database",
-    )
     ap.add_argument("--backup-host", help="Host to attach to stats piped from backup.")
     ap.add_argument(
         "--backup-tag",
@@ -299,6 +275,10 @@ def main():
         default=10,
         help="1 status update is allowed per window, set to 0 for no limit.",
     )
+
+    for exporter_key in EXPORTERS:
+        exporter_key.add_args_to_parser(ap)
+
     args = ap.parse_args()
 
     logging.basicConfig(
