@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import datetime
 import os
 import logging
@@ -9,6 +10,7 @@ from influxdb import InfluxDBClient
 from .const import (
     DEFAULT_INFLUX_DATABASE,
     ENV_INFLUX_PASSWORD,
+    EXPORTER_INFLUXDB,
     KEY_COMMAND_SNAPSHOTS,
     KEY_COMMAND_STATS,
     KEY_MESSAGE_TYPE,
@@ -67,22 +69,24 @@ _LOGGER.level = logging.DEBUG
 
 class Exporter:
     @classmethod
-    def get_password(cls, env_var: str, password_file: str = None) -> Optional[str]:
-        if password_file is not None:
-            return open(password_file).read().strip()
-        if env_var in os.environ:
-            return os.environ[env_var]
+    def add_args_to_parser(cls, args):
+        pass
 
     @classmethod
     def construct_from_args(cls, args):
         pass
 
-    def start(self):
-        pass
-
     def export(self, stats):
         pass
 
+    def get_password(self, env_var: str, password_file_path: str = None) -> Optional[str]:
+        if password_file_path is not None:
+            return open(password_file_path).read().strip()
+        if env_var in os.environ:
+            return os.environ[env_var]
+
+    def start(self):
+        pass
 
 class ExporterInfluxDB(Exporter):
     # restic_backup_progress:
@@ -131,6 +135,33 @@ class ExporterInfluxDB(Exporter):
         self._password = password
         self._database = database
         self._client = None
+
+    @classmethod
+    def add_args_to_parser(cls, ap: argparse.ArgumentParser) -> None:
+        ap.add_argument(
+            "--influxdb-host",
+            default="localhost",
+            help="InfluxDB hostname",
+        )
+        ap.add_argument(
+            "--influxdb-port",
+            help="InfluxDB port",
+            type=int,
+            default=8086,
+        )
+        ap.add_argument(
+            "--influxdb-username",
+            help="InfluxDB user",
+        )
+        ap.add_argument(
+            "--influxdb-password-file",
+            help="InfluxDB password file.",
+        )
+        ap.add_argument(
+            "--influxdb-database",
+            default=DEFAULT_INFLUX_DATABASE,
+            help="InfluxDB database",
+        )
 
     @classmethod
     def construct_from_args(cls, args):
@@ -248,5 +279,5 @@ class ExporterInfluxDB(Exporter):
 
 
 EXPORTERS = {
-    "influxdb": ExporterInfluxDB,
+    EXPORTER_INFLUXDB: ExporterInfluxDB,
 }

@@ -61,3 +61,5 @@ KEY_SUMMARY_TOTAL_FILES_PROCESSED = "total_files_processed"
 KEY_SUMMARY_TOTAL_BYTES_PROCESSED = "total_bytes_processed"
 KEY_SUMMARY_TOTAL_DURATION = "total_duration"
 KEY_SUMMARY_SNAPSHOT_ID = "snapshot_id"
+
+EXPORTER_INFLUXDB = "influxdb"
