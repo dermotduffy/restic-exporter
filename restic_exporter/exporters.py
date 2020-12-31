@@ -89,6 +89,9 @@ class Exporter:
     def start(self):
         pass
 
+    def get_current_datetime(self) -> datetime.datetime:
+        return datetime.datetime.now()
+
 class ExporterInfluxDB(Exporter):
     # restic_backup_progress:
     #   hostname
@@ -241,7 +244,7 @@ class ExporterInfluxDB(Exporter):
         point = {
             "measurement": MEASUREMENT_BACKUP_STATUS,
             "tags": self._get_influx_tags_from_key(stats.key),
-            "time": datetime.datetime.now(),
+            "time": self.get_current_datetime(),
             "fields": fields,
         }
         self._submit_point(point)
@@ -263,7 +266,7 @@ class ExporterInfluxDB(Exporter):
         point = {
             "measurement": MEASUREMENT_BACKUP_SUMMARY,
             "tags": self._get_influx_tags_from_key(stats.key),
-            "time": datetime.datetime.now(),
+            "time": self.get_current_datetime(),
             "fields": fields,
         }
         self._submit_point(point)

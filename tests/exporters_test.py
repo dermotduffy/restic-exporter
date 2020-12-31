@@ -15,6 +15,25 @@ _LOGGER.setLevel(logging.DEBUG)
 from restic_exporter.const import ENV_INFLUX_PASSWORD, EXPORTER_INFLUXDB
 from restic_exporter.exporters import Exporter, EXPORTERS
 
+# TODO are all these used?
+from restic_exporter.types import (
+    ResticBackupStatus,
+    ResticBackupSummary,
+    ResticSnapshot,
+    ResticSnapshotKeys,
+    ResticStats,
+    ResticStatsBundle,
+)
+
+TEST_INFLUXDB_EXPORTER_ARGS = {
+    "host": "test_host",
+    "port": 1234,
+    "username": "test_username",
+    "password": "test_password",
+    "database": "test_database",
+}
+
+
 def test_exporter_add_args_to_parser(caplog):
     exporter_class = Exporter
 
@@ -23,28 +42,36 @@ def test_exporter_add_args_to_parser(caplog):
     args = ap.parse_args("")
     assert not vars(args)
 
+
 def test_exporter_construct_from_args(caplog):
     ap = argparse.ArgumentParser()
     assert Exporter.construct_from_args(ap) is None
+
 
 def test_exporter_start(caplog):
     exporter = Exporter()
     assert exporter.start() == None
 
+
 def test_exporter_export(caplog):
     exporter = Exporter()
     assert exporter.export("will_be_ignored") == None
 
+
 def test_exporter_get_password(tmp_path):
     password_env = "TEST_ENV_VAR"
     os.environ[password_env] = "test_password"
-    
+
     assert Exporter.get_password(password_env) == "test_password"
 
     password_file_path = os.path.join(tmp_path, "restic_exporter_password_file")
     with open(password_file_path, "w") as fh:
         fh.write("different_test_password")
-    assert Exporter.get_password(password_env, password_file_path) == "different_test_password"
+    assert (
+        Exporter.get_password(password_env, password_file_path)
+        == "different_test_password"
+    )
+
 
 def test_exporter_influxdb_add_args_to_parser(caplog):
     exporter_class = EXPORTERS[EXPORTER_INFLUXDB]
@@ -57,6 +84,7 @@ def test_exporter_influxdb_add_args_to_parser(caplog):
     assert args.influxdb_password_file == None
     assert args.influxdb_port == 8086
 
+
 def test_exporter_influxdb_construct_from_args(caplog):
     exporter_class = EXPORTERS[EXPORTER_INFLUXDB]
     ap = argparse.ArgumentParser()
@@ -68,18 +96,10 @@ def test_exporter_influxdb_construct_from_args(caplog):
     assert exporter._username == None
     assert exporter._password == None
     assert exporter._port == 8086
-    
 
-@mock.patch('restic_exporter.exporters.influxdb.InfluxDBClient')
-def test_exporter_influxdb_start(mock_influxdb):
-    exporter_class = EXPORTERS[EXPORTER_INFLUXDB]
-    exporter = exporter_class(
-        host="test_host",
-        port=1234,
-        username="test_username",
-        password="test_password",
-        database="test_database"
-    )
+
+def setup_influxdb_exporter(mock_influxdb):
+    exporter = EXPORTERS[EXPORTER_INFLUXDB](**TEST_INFLUXDB_EXPORTER_ARGS)
     assert exporter is not None
 
     mock_influxdb_client = mock.Mock()
@@ -87,6 +107,53 @@ def test_exporter_influxdb_start(mock_influxdb):
 
     exporter.start()
 
-    mock_influxdb.assert_called_with('test_host', 1234, 'test_username', 'test_password', 'test_database')
+    mock_influxdb.assert_called_with(
+        "test_host", 1234, "test_username", "test_password", "test_database"
+    )
     assert mock_influxdb_client.create_database.called
-   
+
+    return (exporter, mock_influxdb_client)
+
+
+@mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
+def test_exporter_influxdb_start(mock_influxdb):
+    (_, _) = setup_influxdb_exporter(mock_influxdb)
+
+
+@mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
+@mock.patch("restic_exporter.exporters.Exporter.get_current_datetime")
+def test_exporter_influxdb_export_restic_backup_status(mock_current_datetime, mock_influxdb):
+    (exporter, mock_influxdb_client) = setup_influxdb_exporter(mock_influxdb)
+
+    key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
+    backup_status = ResticBackupStatus(
+        key=key,
+        files_total=9586,
+        bytes_total=147893659,
+        percent_done=0.25,
+        files_done=2321,
+        bytes_done=36953149,
+        seconds_elapsed=None,
+        seconds_remaining=None,
+    )
+
+    current_datetime = datetime.datetime(2020, 12, 30, 8, 27, 23)
+    mock_current_datetime.return_value = current_datetime
+    exporter.export(backup_status)
+
+    mock_influxdb_client.write_points.assert_called_with(
+        [
+            {
+                "measurement": "restic_backup_status",
+                "tags": {"hostname": "hostname", "paths": "path1"},
+                "time": current_datetime,
+                "fields": {
+                    "total_files": 9586,
+                    "total_bytes": 147893659,
+                    "percent_done": 0.25,
+                    "files_done": 2321,
+                    "bytes_done": 36953149,
+                },
+            }
+        ]
+    )
