@@ -5,7 +5,7 @@ import datetime
 import os
 import logging
 from typing import Any, Dict, List, Optional, Union
-from influxdb import InfluxDBClient
+import influxdb
 
 from .const import (
     DEFAULT_INFLUX_DATABASE,
@@ -79,6 +79,7 @@ class Exporter:
     def export(self, stats):
         pass
 
+    @classmethod
     def get_password(self, env_var: str, password_file_path: str = None) -> Optional[str]:
         if password_file_path is not None:
             return open(password_file_path).read().strip()
@@ -182,8 +183,7 @@ class ExporterInfluxDB(Exporter):
             f"Starting InfluxDB connection to {self._host}:{self._port} "
             f"for user {self._username} to database {self._database}"
         )
-        _LOGGER.debug(f"Password is {self._password}")
-        self._client = InfluxDBClient(
+        self._client = influxdb.InfluxDBClient(
             self._host, self._port, self._username, self._password, self._database
         )
         self._client.create_database(self._database)
