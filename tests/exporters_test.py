@@ -122,7 +122,9 @@ def test_exporter_influxdb_start(mock_influxdb):
 
 @mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
 @mock.patch("restic_exporter.exporters.Exporter.get_current_datetime")
-def test_exporter_influxdb_export_restic_backup_status(mock_current_datetime, mock_influxdb):
+def test_exporter_influxdb_export_restic_backup_status(
+    mock_current_datetime, mock_influxdb
+):
     (exporter, mock_influxdb_client) = setup_influxdb_exporter(mock_influxdb)
 
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
@@ -139,6 +141,7 @@ def test_exporter_influxdb_export_restic_backup_status(mock_current_datetime, mo
 
     current_datetime = datetime.datetime(2020, 12, 30, 8, 27, 23)
     mock_current_datetime.return_value = current_datetime
+
     exporter.export(backup_status)
 
     mock_influxdb_client.write_points.assert_called_with(
@@ -153,6 +156,102 @@ def test_exporter_influxdb_export_restic_backup_status(mock_current_datetime, mo
                     "percent_done": 0.25,
                     "files_done": 2321,
                     "bytes_done": 36953149,
+                },
+            }
+        ]
+    )
+
+
+@mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
+@mock.patch("restic_exporter.exporters.Exporter.get_current_datetime")
+def test_exporter_influxdb_export_restic_backup_summary(
+    mock_current_datetime, mock_influxdb
+):
+    (exporter, mock_influxdb_client) = setup_influxdb_exporter(mock_influxdb)
+
+    backup_summary = ResticBackupSummary(
+        key=ResticSnapshotKeys(
+            hostname="hostname",
+            paths=["path1", "path2"],
+            snapshot_id="a34dda71",
+        ),
+        files_new=1265,
+        files_changed=41,
+        files_unmodified=77637,
+        dirs_new=217,
+        dirs_changed=44,
+        dirs_unmodified=17511,
+        data_added=14909514,
+        files_processed=78943,
+        bytes_processed=1667325955,
+        duration=4.035790225,
+    )
+
+    current_datetime = datetime.datetime(2020, 12, 30, 8, 27, 23)
+    mock_current_datetime.return_value = current_datetime
+
+    exporter.export(backup_summary)
+
+    mock_influxdb_client.write_points.assert_called_with(
+        [
+            {
+                "measurement": "restic_backup_summary",
+                "tags": {"hostname": "hostname", "paths": "path1,path2"},
+                "time": current_datetime,
+                "fields": {
+                    "files_new": 1265,
+                    "files_changed": 41,
+                    "files_unmodified": 77637,
+                    "dirs_new": 217,
+                    "dirs_changed": 44,
+                    "dirs_unmodified": 17511,
+                    "data_added": 14909514,
+                    "total_files_processed": 78943,
+                    "total_bytes_processed": 1667325955,
+                    "total_duration": 4.035790225,
+                    "snapshot_id": "a34dda71",
+                },
+            }
+        ]
+    )
+
+
+@mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
+def test_exporter_influxdb_export_restic_snapshot(mock_influxdb):
+    (exporter, mock_influxdb_client) = setup_influxdb_exporter(mock_influxdb)
+
+    snapshot = ResticSnapshot(
+        ResticSnapshotKeys(
+            hostname="hostname",
+            paths=["/path/whatever"],
+            tags=None,
+            snapshot_id="1234",
+        ),
+        snapshot_time=datetime.datetime(
+            2020, 12, 28, 21, 28, 23, 403981, tzinfo=dateutil.tz.tzoffset(None, -28800)
+        ),
+        stats=ResticStatsBundle(
+            raw=ResticStats(total_size=1709, total_file_count=1, total_blob_count=None),
+            restore=ResticStats(
+                total_size=1710, total_file_count=2, total_blob_count=None
+            ),
+        ),
+    )
+
+    exporter.export(snapshot)
+
+    mock_influxdb_client.write_points.assert_called_with(
+        [
+            {
+                "measurement": "restic_snapshots",
+                "tags": {"hostname": "hostname", "paths": "/path/whatever"},
+                "time": snapshot.snapshot_time,
+                "fields": {
+                    "id": "1234",
+                    "raw_size": 1709,
+                    "raw_file_count": 1,
+                    "restore_size": 1710,
+                    "restore_file_count": 2,
                 },
             }
         ]
