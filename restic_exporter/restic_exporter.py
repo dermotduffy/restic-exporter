@@ -281,7 +281,7 @@ def main():
     )
 
     for exporter_key in EXPORTERS:
-        exporter_key.add_args_to_parser(ap)
+        EXPORTERS[exporter_key].add_args_to_parser(ap)
 
     args = ap.parse_args()
 
