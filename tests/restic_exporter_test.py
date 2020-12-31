@@ -148,3 +148,14 @@ def test_restic_executor_get_snapshots(mock_subprocess, caplog):
 
     mock_subprocess.run.assert_called_with(expected_args, capture_output=True)
     assert stats == [json_to_snapshot(TEST_SNAPSHOT_DATA)]
+
+    # Test: No snapshots.
+    mock_subprocess.run = mock.Mock(
+        args=expected_args,
+        rc=1,
+    )
+    stats = r.get_snapshots(group_by="host,path,tags", last=True)
+
+    mock_subprocess.run.assert_called_with(expected_args, capture_output=True)
+    assert stats == []
+    assert "No valid snapshots found" in caplog.text
