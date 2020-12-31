@@ -13,6 +13,8 @@ import subprocess
 from typing import Any, Dict, List, Optional, Union
 from influxdb import InfluxDBClient
 
+from . import get_current_datetime()
+
 from .const import (
     DEFAULT_INFLUX_DATABASE,
     ENV_INFLUX_PASSWORD,
@@ -163,7 +165,7 @@ class ResticStatsGenerator:
             return []
 
         if data[KEY_MESSAGE_TYPE] == KEY_MESSAGE_TYPE_STATUS:
-            now = datetime.datetime.now()
+            now = get_current_datetime()
             if (
                 self._backup_status_last_update is not None
                 and self._backup_status_window_seconds > 0
@@ -197,8 +199,9 @@ class ResticStatsGenerator:
             )
         return snapshots
 
-    def _get_repo_stats(self, mode) -> ResticStats:
-        return self._executor.get_stats(mode=mode)
+    # TODO: Add repo stats.
+    # def _get_repo_stats(self, mode) -> ResticStats:
+    #     return self._executor.get_stats(mode=mode)
 
 
 def get_snapshot_key_from_args(

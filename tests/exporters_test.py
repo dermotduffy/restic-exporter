@@ -12,6 +12,7 @@ logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
+from restic_exporter import get_current_datetime
 from restic_exporter.const import ENV_INFLUX_PASSWORD, EXPORTER_INFLUXDB
 from restic_exporter.exporters import Exporter, EXPORTERS
 
@@ -72,12 +73,6 @@ def test_exporter_get_password(tmp_path):
         == "different_test_password"
     )
 
-def test_exporter_get_current_datetime():
-    exporter = Exporter()
-    dt = exporter.get_current_datetime()
-    assert dt
-    assert type(dt) == datetime.datetime
-
 
 def test_exporter_influxdb_add_args_to_parser():
     exporter_class = EXPORTERS[EXPORTER_INFLUXDB]
@@ -127,7 +122,7 @@ def test_exporter_influxdb_start(mock_influxdb):
 
 
 @mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
-@mock.patch("restic_exporter.exporters.Exporter.get_current_datetime")
+@mock.patch("restic_exporter.exporters.get_current_datetime")
 def test_exporter_influxdb_export_restic_backup_status(
     mock_current_datetime, mock_influxdb
 ):
@@ -169,7 +164,7 @@ def test_exporter_influxdb_export_restic_backup_status(
 
 
 @mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
-@mock.patch("restic_exporter.exporters.Exporter.get_current_datetime")
+@mock.patch("restic_exporter.exporters.get_current_datetime")
 def test_exporter_influxdb_export_restic_backup_summary(
     mock_current_datetime, mock_influxdb
 ):

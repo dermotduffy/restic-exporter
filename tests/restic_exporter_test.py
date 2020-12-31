@@ -1,6 +1,7 @@
 #!/usr/bin/python
 """Test for the restic-exporter."""
 
+import datetime
 import json
 import os
 import pytest
@@ -14,8 +15,9 @@ logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
-from restic_exporter.restic_exporter import ResticExecutor
+from restic_exporter.restic_exporter import ResticExecutor, ResticStatsGenerator
 from restic_exporter.types import json_to_snapshot, json_to_stats
+from restic_exporter import get_current_datetime
 
 from . import (
     TEST_STATS_DATA,
@@ -67,6 +69,12 @@ from restic_exporter.const import (
     MEASUREMENT_SNAPSHOTS,
     MEASUREMENT_REPO,
 )
+
+
+def test_get_current_datetime():
+    dt = get_current_datetime()
+    assert dt
+    assert type(dt) == datetime.datetime
 
 
 def _get_completed_process(args=[], rc=0, stdout="", stderr=""):
@@ -159,3 +167,11 @@ def test_restic_executor_get_snapshots(mock_subprocess, caplog):
     mock_subprocess.run.assert_called_with(expected_args, capture_output=True)
     assert stats == []
     assert "No valid snapshots found" in caplog.text
+
+def test_restic_stats_generator():
+    mock_executor = mock.Mock()
+    generator = ResticStatsGenerator(
+        mock_executor,
+        group_by="group_by",
+        last=True,
+        backup_status_window_seconds=10)

@@ -7,6 +7,8 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 import influxdb
 
+from . import get_current_datetime
+
 from .const import (
     DEFAULT_INFLUX_DATABASE,
     ENV_INFLUX_PASSWORD,
@@ -89,8 +91,6 @@ class Exporter:
     def start(self):
         pass
 
-    def get_current_datetime(self) -> datetime.datetime:
-        return datetime.datetime.now()
 
 class ExporterInfluxDB(Exporter):
     # restic_backup_progress:
@@ -250,7 +250,7 @@ class ExporterInfluxDB(Exporter):
         point = {
             "measurement": MEASUREMENT_BACKUP_STATUS,
             "tags": self._get_influx_tags_from_key(stats.key),
-            "time": self.get_current_datetime(),
+            "time": get_current_datetime(),
             "fields": fields,
         }
         self._submit_point(point)
@@ -272,7 +272,7 @@ class ExporterInfluxDB(Exporter):
         point = {
             "measurement": MEASUREMENT_BACKUP_SUMMARY,
             "tags": self._get_influx_tags_from_key(stats.key),
-            "time": self.get_current_datetime(),
+            "time": get_current_datetime(),
             "fields": fields,
         }
         self._submit_point(point)
