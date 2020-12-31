@@ -13,7 +13,7 @@ import subprocess
 from typing import Any, Dict, List, Optional, Union
 from influxdb import InfluxDBClient
 
-from . import get_current_datetime()
+from . import get_current_datetime
 
 from .const import (
     DEFAULT_INFLUX_DATABASE,
@@ -108,7 +108,7 @@ class ResticExecutor:
     def get_stats(
         self,
         mode: str,
-        snapshot_ids: Optional[List[str]] = None,
+        snapshot_ids: Optional[List[ResticStats]] = None,
     ) -> Optional[ResticStats]:
         return json_to_stats(
             self._run_command(
@@ -183,6 +183,7 @@ class ResticStatsGenerator:
             if not summary:
                 return []
             return [self._generate_last_status_from_summary(summary), summary]
+        return []
 
     def get_snapshot_stats(self) -> List[ResticSnapshot]:
         snapshots = self._executor.get_snapshots(

@@ -23,14 +23,11 @@ from restic_exporter.types import (
 )
 
 from . import (
-    TEST_STATS_DATA,
+    dict_without,
     TEST_SNAPSHOT_DATA,
     TEST_BACKUP_STATUS_DATA,
     TEST_BACKUP_SUMMARY_DATA,
 )
-
-def dict_without(data: Dict[str, Any], omit_key: str) -> Dict[str, Any]:
-    return {k: data[k] for k in data if k != omit_key}
 
 def test_json_to_stats(caplog):
     # Test: Normal.
@@ -77,7 +74,7 @@ def test_json_to_snapshot(caplog):
             hostname="hostname",
             paths=["/path/whatever"],
             tags=None,
-            snapshot_id="1234",
+            snapshot_id="ab1234",
         ),
         snapshot_time=datetime.datetime(
             2020, 12, 28, 21, 28, 23, 403981, tzinfo=dateutil.tz.tzoffset(None, -28800)

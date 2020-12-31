@@ -1,4 +1,7 @@
-TEST_STATS_DATA = {"total_size": 1709, "total_file_count": 1, "total_blob_count": 4}
+from typing import Any, Dict
+
+TEST_STATS_DATA_RAW = {"total_size": 1709, "total_file_count": 1, "total_blob_count": 4}
+TEST_STATS_DATA_RESTORE = {"total_size": 1710, "total_file_count": 2, "total_blob_count": 5}
 
 TEST_SNAPSHOT_DATA = {
     "time": "2020-12-28T21:28:23.403981118-08:00",
@@ -9,8 +12,8 @@ TEST_SNAPSHOT_DATA = {
     "username": "username",
     "uid": 1000,
     "gid": 1000,
-    "id": "1234",
-    "short_id": "12",
+    "id": "ab1234",
+    "short_id": "ab12",
 }
 
 TEST_GROUPED_SNAPSHOT_DATA = [
@@ -46,3 +49,6 @@ TEST_BACKUP_SUMMARY_DATA = {
     "total_duration": 4.035790225,
     "snapshot_id": "a34dda71",
 }
+
+def dict_without(data: Dict[str, Any], omit_key: str) -> Dict[str, Any]:
+    return {k: data[k] for k in data if k != omit_key}
