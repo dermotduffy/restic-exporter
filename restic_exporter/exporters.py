@@ -195,18 +195,26 @@ class ExporterInfluxDB(Exporter):
         _LOGGER.debug(f"Writing data to InfluxDB: {point} ")
         self._client.write_points([point])
 
+    def _add_optional_fields(self, optional_fields: Dict[str, Any]) -> Dict[str, Any]:
+        out = {}
+        for key, value in optional_fields.items():
+            if value is not None:
+                out[key] = value
+        return out
+
     def _export_snapshot(self, snapshot: ResticSnapshot) -> None:
         fields = {
-            KEY_RAW_SIZE: int(snapshot.stats.raw.total_size),
-            KEY_RAW_FILE_COUNT: int(snapshot.stats.raw.total_file_count),
+            KEY_SNAPSHOT_ID: snapshot.key.snapshot_id,
+            KEY_RAW_SIZE: snapshot.stats.raw.total_size,
+            KEY_RAW_FILE_COUNT: snapshot.stats.raw.total_file_count,
             KEY_RESTORE_SIZE: int(snapshot.stats.restore.total_size),
             KEY_RESTORE_FILE_COUNT: int(snapshot.stats.restore.total_file_count),
-            KEY_SNAPSHOT_ID: snapshot.key.snapshot_id,
         }
-        if snapshot.stats.raw.total_blob_count is not None:
-            fields[KEY_RAW_BLOB_COUNT] = snapshot.stats.raw.total_blob_count
-        if snapshot.stats.restore.total_blob_count is not None:
-            fields[KEY_RESTORE_BLOB_COUNT] = snapshot.stats.restore.total_blob_count
+        optional_fields = {
+            KEY_RAW_BLOB_COUNT: snapshot.stats.raw.total_blob_count,
+            KEY_RESTORE_BLOB_COUNT: snapshot.stats.restore.total_blob_count,
+        }
+        fields.update(self._add_optional_fields(optional_fields))
 
         point = {
             "measurement": MEASUREMENT_SNAPSHOTS,
@@ -230,16 +238,14 @@ class ExporterInfluxDB(Exporter):
             KEY_STATUS_FILES_TOTAL: stats.files_total,
             KEY_STATUS_BYTES_TOTAL: stats.bytes_total,
         }
-        optional_fields = (
-            (KEY_STATUS_PERCENT_DONE, stats.percent_done),
-            (KEY_STATUS_FILES_DONE, stats.files_done),
-            (KEY_STATUS_BYTES_DONE, stats.bytes_done),
-            (KEY_STATUS_SECONDS_ELAPSED, stats.seconds_elapsed),
-            (KEY_STATUS_SECONDS_REMAINING, stats.seconds_elapsed),
-        )
-        for key, value in optional_fields:
-            if value is not None:
-                fields[key] = value
+        optional_fields = {
+            KEY_STATUS_PERCENT_DONE: stats.percent_done,
+            KEY_STATUS_FILES_DONE: stats.files_done,
+            KEY_STATUS_BYTES_DONE: stats.bytes_done,
+            KEY_STATUS_SECONDS_ELAPSED: stats.seconds_elapsed,
+            KEY_STATUS_SECONDS_REMAINING: stats.seconds_elapsed,
+        }
+        fields.update(self._add_optional_fields(optional_fields))
 
         point = {
             "measurement": MEASUREMENT_BACKUP_STATUS,
