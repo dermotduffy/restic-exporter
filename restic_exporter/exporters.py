@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
 import argparse
-import datetime
 import os
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 import influxdb
 
 from . import get_current_datetime
@@ -13,13 +12,6 @@ from .const import (
     DEFAULT_INFLUX_DATABASE,
     ENV_INFLUX_PASSWORD,
     EXPORTER_INFLUXDB,
-    KEY_COMMAND_SNAPSHOTS,
-    KEY_COMMAND_STATS,
-    KEY_MESSAGE_TYPE,
-    KEY_MESSAGE_TYPE_STATUS,
-    KEY_MESSAGE_TYPE_SUMMARY,
-    KEY_MODE_RAW_DATA,
-    KEY_MODE_RESTORE_SIZE,
     KEY_RAW_BLOB_COUNT,
     KEY_RAW_FILE_COUNT,
     KEY_RAW_SIZE,
@@ -27,7 +19,6 @@ from .const import (
     KEY_RESTORE_FILE_COUNT,
     KEY_RESTORE_SIZE,
     KEY_SNAPSHOT_ID,
-    KEY_SNAPSHOTS,
     KEY_STATUS_BYTES_DONE,
     KEY_STATUS_BYTES_TOTAL,
     KEY_STATUS_FILES_DONE,
@@ -49,20 +40,12 @@ from .const import (
     MEASUREMENT_BACKUP_STATUS,
     MEASUREMENT_BACKUP_SUMMARY,
     MEASUREMENT_SNAPSHOTS,
-    MEASUREMENT_REPO,
 )
 
 from .types import (
     ResticBackupStatus,
     ResticBackupSummary,
     ResticSnapshot,
-    ResticSnapshotKeys,
-    ResticStats,
-    ResticStatsBundle,
-    json_to_stats,
-    json_to_snapshot,
-    json_to_backup_status,
-    json_to_backup_summary,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -82,7 +65,9 @@ class Exporter:
         pass
 
     @classmethod
-    def get_password(self, env_var: str, password_file_path: str = None) -> Optional[str]:
+    def get_password(
+        self, env_var: str, password_file_path: str = None
+    ) -> Optional[str]:
         if password_file_path is not None:
             return open(password_file_path).read().strip()
         if env_var in os.environ:

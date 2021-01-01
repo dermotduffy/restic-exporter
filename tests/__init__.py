@@ -50,5 +50,6 @@ TEST_BACKUP_SUMMARY_DATA = {
     "snapshot_id": "a34dda71",
 }
 
+
 def dict_without(data: Dict[str, Any], omit_key: str) -> Dict[str, Any]:
     return {k: data[k] for k in data if k != omit_key}

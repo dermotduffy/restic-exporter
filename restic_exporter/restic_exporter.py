@@ -1,23 +1,17 @@
 #!/usr/bin/env python
 
 import argparse
-import attr
-from dateutil import parser as dateutil_parser
 import datetime
-import os
 import re
 import sys
 import json
 import logging
 import subprocess
 from typing import Any, Dict, List, Optional, Union
-from influxdb import InfluxDBClient
 
 from . import get_current_datetime
 
 from .const import (
-    DEFAULT_INFLUX_DATABASE,
-    ENV_INFLUX_PASSWORD,
     KEY_COMMAND_SNAPSHOTS,
     KEY_COMMAND_STATS,
     KEY_MESSAGE_TYPE,
@@ -25,36 +19,7 @@ from .const import (
     KEY_MESSAGE_TYPE_SUMMARY,
     KEY_MODE_RAW_DATA,
     KEY_MODE_RESTORE_SIZE,
-    KEY_RAW_BLOB_COUNT,
-    KEY_RAW_FILE_COUNT,
-    KEY_RAW_SIZE,
-    KEY_RESTORE_BLOB_COUNT,
-    KEY_RESTORE_FILE_COUNT,
-    KEY_RESTORE_SIZE,
-    KEY_SNAPSHOT_ID,
     KEY_SNAPSHOTS,
-    KEY_STATUS_BYTES_DONE,
-    KEY_STATUS_BYTES_TOTAL,
-    KEY_STATUS_FILES_DONE,
-    KEY_STATUS_FILES_TOTAL,
-    KEY_STATUS_PERCENT_DONE,
-    KEY_STATUS_SECONDS_ELAPSED,
-    KEY_STATUS_SECONDS_REMAINING,
-    KEY_SUMMARY_DATA_ADDED,
-    KEY_SUMMARY_DIRS_CHANGED,
-    KEY_SUMMARY_DIRS_NEW,
-    KEY_SUMMARY_DIRS_UNMODIFIED,
-    KEY_SUMMARY_FILES_CHANGED,
-    KEY_SUMMARY_FILES_NEW,
-    KEY_SUMMARY_FILES_UNMODIFIED,
-    KEY_SUMMARY_SNAPSHOT_ID,
-    KEY_SUMMARY_TOTAL_BYTES_PROCESSED,
-    KEY_SUMMARY_TOTAL_DURATION,
-    KEY_SUMMARY_TOTAL_FILES_PROCESSED,
-    MEASUREMENT_BACKUP_STATUS,
-    MEASUREMENT_BACKUP_SUMMARY,
-    MEASUREMENT_SNAPSHOTS,
-    MEASUREMENT_REPO,
 )
 
 from .exporters import EXPORTERS
@@ -81,6 +46,7 @@ _LOGGER.level = logging.DEBUG
 # TODO verify consts, may need to rename a few.
 # TODO get restic tables as close to json output as possible.
 # TODO action=extent may not work in Python 3.7?
+
 
 class ResticExecutor:
     def __init__(self, path_binary: str) -> None:
@@ -162,7 +128,7 @@ class ResticStatsGenerator:
             data = json.loads(line)
         except (ValueError, json.decoder.JSONDecodeError):
             return []
-        if not KEY_MESSAGE_TYPE in data:
+        if KEY_MESSAGE_TYPE not in data:
             return []
 
         if data[KEY_MESSAGE_TYPE] == KEY_MESSAGE_TYPE_STATUS:
@@ -212,7 +178,7 @@ def get_snapshot_key_from_args(
     def split_args(args: List[str]) -> List[str]:
         out = []
         for arg in args if isinstance(args, list) else [args]:
-            out.extend(re.split("[,\s]", arg))
+            out.extend(re.split(r"[,\s]", arg))
         return out
 
     if args.backup_host is None:
@@ -321,6 +287,7 @@ def main():
         for exporter in exporters:
             for stat in stats:
                 exporter.export(stat)
+
 
 if __name__ == "__main__":
     main()

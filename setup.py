@@ -11,7 +11,7 @@ setuptools.setup(
     author="Dermot Duffy",
     author_email="dermot.duffy@gmail.com",
     description="Statistic exporter for restic backups",
-    entry_points = {
+    entry_points={
         "console_scripts": ["restic-exporter=restic_exporter.restic_exporter:main"],
     },
     include_package_data=True,

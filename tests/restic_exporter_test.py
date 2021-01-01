@@ -4,18 +4,11 @@
 import argparse
 import datetime
 import json
-import os
 import pytest
 import logging
 import subprocess
-import string
 import sys
-from typing import cast, Any, Dict, List, Optional, Tuple
 from unittest import mock
-
-logging.basicConfig()
-_LOGGER = logging.getLogger(__name__)
-_LOGGER.setLevel(logging.DEBUG)
 
 from restic_exporter.restic_exporter import (
     get_snapshot_key_from_args,
@@ -45,48 +38,15 @@ from . import (
     TEST_BACKUP_SUMMARY_DATA,
 )
 
-# TODO trim
 from restic_exporter.const import (
-    DEFAULT_INFLUX_DATABASE,
-    ENV_INFLUX_PASSWORD,
-    KEY_COMMAND_SNAPSHOTS,
-    KEY_COMMAND_STATS,
-    KEY_MESSAGE_TYPE,
-    KEY_MESSAGE_TYPE_STATUS,
-    KEY_MESSAGE_TYPE_SUMMARY,
     KEY_MODE_RAW_DATA,
     KEY_MODE_RESTORE_SIZE,
-    KEY_RAW_BLOB_COUNT,
-    KEY_RAW_FILE_COUNT,
-    KEY_RAW_SIZE,
-    KEY_RESTORE_BLOB_COUNT,
-    KEY_RESTORE_FILE_COUNT,
-    KEY_RESTORE_SIZE,
-    KEY_SNAPSHOT_ID,
-    KEY_SNAPSHOTS,
-    KEY_STATUS_BYTES_DONE,
-    KEY_STATUS_BYTES_TOTAL,
-    KEY_STATUS_FILES_DONE,
-    KEY_STATUS_FILES_TOTAL,
-    KEY_STATUS_PERCENT_DONE,
-    KEY_STATUS_SECONDS_ELAPSED,
-    KEY_STATUS_SECONDS_REMAINING,
-    KEY_SUMMARY_DATA_ADDED,
-    KEY_SUMMARY_DIRS_CHANGED,
-    KEY_SUMMARY_DIRS_NEW,
-    KEY_SUMMARY_DIRS_UNMODIFIED,
-    KEY_SUMMARY_FILES_CHANGED,
-    KEY_SUMMARY_FILES_NEW,
-    KEY_SUMMARY_FILES_UNMODIFIED,
-    KEY_SUMMARY_SNAPSHOT_ID,
-    KEY_SUMMARY_TOTAL_BYTES_PROCESSED,
-    KEY_SUMMARY_TOTAL_DURATION,
-    KEY_SUMMARY_TOTAL_FILES_PROCESSED,
-    MEASUREMENT_BACKUP_STATUS,
-    MEASUREMENT_BACKUP_SUMMARY,
-    MEASUREMENT_SNAPSHOTS,
-    MEASUREMENT_REPO,
 )
+
+
+logging.basicConfig()
+_LOGGER = logging.getLogger(__name__)
+_LOGGER.setLevel(logging.DEBUG)
 
 
 def test_get_current_datetime():
@@ -132,7 +92,7 @@ def test_restic_executor_get_stats(mock_subprocess, caplog):
     stats = r.get_stats(mode=KEY_MODE_RAW_DATA)
 
     mock_subprocess.run.assert_called_with(expected_args, capture_output=True)
-    assert stats == None
+    assert stats is None
     assert "Command failed" in caplog.text
 
     # Test: Non-JSON returned.
@@ -144,7 +104,7 @@ def test_restic_executor_get_stats(mock_subprocess, caplog):
     stats = r.get_stats(mode=KEY_MODE_RAW_DATA)
 
     mock_subprocess.run.assert_called_with(expected_args, capture_output=True)
-    assert stats == None
+    assert stats is None
     assert "yielded non-JSON output" in caplog.text
 
 
@@ -204,6 +164,7 @@ def test_restic_stats_generator_get_snapshot_stats():
     )
 
     stats = generator.get_snapshot_stats()
+
     mock_executor.get_snapshots.assert_called_with(group_by="group_by", last=True)
     mock_executor.get_stats.assert_has_calls(
         [
@@ -217,6 +178,8 @@ def test_restic_stats_generator_get_snapshot_stats():
         raw=json_to_stats(TEST_STATS_DATA_RAW),
         restore=json_to_stats(TEST_STATS_DATA_RESTORE),
     )
+
+    assert stats == [expected_stats]
 
 
 @mock.patch("restic_exporter.restic_exporter.get_current_datetime")

@@ -3,20 +3,12 @@ import argparse
 import datetime
 import dateutil
 import os
-import pytest
 from unittest import mock
 import logging
-from typing import Any, Dict, List, Optional, Tuple
 
-logging.basicConfig()
-_LOGGER = logging.getLogger(__name__)
-_LOGGER.setLevel(logging.DEBUG)
-
-from restic_exporter import get_current_datetime
-from restic_exporter.const import ENV_INFLUX_PASSWORD, EXPORTER_INFLUXDB
+from restic_exporter.const import EXPORTER_INFLUXDB
 from restic_exporter.exporters import Exporter, EXPORTERS
 
-# TODO are all these used?
 from restic_exporter.types import (
     ResticBackupStatus,
     ResticBackupSummary,
@@ -25,6 +17,10 @@ from restic_exporter.types import (
     ResticStats,
     ResticStatsBundle,
 )
+
+logging.basicConfig()
+_LOGGER = logging.getLogger(__name__)
+_LOGGER.setLevel(logging.DEBUG)
 
 TEST_INFLUXDB_EXPORTER_ARGS = {
     "host": "test_host",
@@ -36,8 +32,6 @@ TEST_INFLUXDB_EXPORTER_ARGS = {
 
 
 def test_exporter_add_args_to_parser():
-    exporter_class = Exporter
-
     ap = argparse.ArgumentParser()
     Exporter.add_args_to_parser(ap)
     args = ap.parse_args("")
@@ -51,12 +45,12 @@ def test_exporter_construct_from_args():
 
 def test_exporter_start():
     exporter = Exporter()
-    assert exporter.start() == None
+    assert exporter.start() is None
 
 
 def test_exporter_export():
     exporter = Exporter()
-    assert exporter.export("will_be_ignored") == None
+    assert exporter.export("will_be_ignored") is None
 
 
 def test_exporter_get_password(tmp_path):
@@ -81,8 +75,8 @@ def test_exporter_influxdb_add_args_to_parser():
     args = ap.parse_args("")
     assert args.influxdb_database == "restic"
     assert args.influxdb_host == "localhost"
-    assert args.influxdb_username == None
-    assert args.influxdb_password_file == None
+    assert args.influxdb_username is None
+    assert args.influxdb_password_file is None
     assert args.influxdb_port == 8086
 
 
@@ -94,8 +88,8 @@ def test_exporter_influxdb_construct_from_args():
     exporter = exporter_class.construct_from_args(args)
     assert exporter._database == "restic"
     assert exporter._host == "localhost"
-    assert exporter._username == None
-    assert exporter._password == None
+    assert exporter._username is None
+    assert exporter._password is None
     assert exporter._port == 8086
 
 
@@ -259,10 +253,11 @@ def test_exporter_influxdb_export_restic_snapshot(mock_influxdb):
         ]
     )
 
+
 @mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
 def test_exporter_influxdb_export_unknown(mock_influxdb, caplog):
     (exporter, mock_influxdb_client) = setup_test_influxdb_exporter(mock_influxdb)
-    
+
     exporter.export("this_is_not_an_expected_type")
 
     assert "cannot handle stats of type" in caplog.text
