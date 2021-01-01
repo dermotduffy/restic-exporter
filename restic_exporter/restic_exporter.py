@@ -80,6 +80,7 @@ _LOGGER.level = logging.DEBUG
 # TODO snapshot id from backup summary same in snapshots?
 # TODO verify consts, may need to rename a few.
 # TODO get restic tables as close to json output as possible.
+# TODO action=extent may not work in Python 3.7?
 
 class ResticExecutor:
     def __init__(self, path_binary: str) -> None:
@@ -307,7 +308,8 @@ def main():
 
     if not sys.stdin.isatty():
         key = get_snapshot_key_from_args(ap, args)
-        for line in sys.stdin:
+        while True:
+            line = sys.stdin.readline()
             if not line:
                 break
             stats = generator.get_piped_stats(line, key)

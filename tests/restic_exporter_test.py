@@ -9,6 +9,7 @@ import pytest
 import logging
 import subprocess
 import string
+import sys
 from typing import cast, Any, Dict, List, Optional, Tuple
 from unittest import mock
 
@@ -18,6 +19,8 @@ _LOGGER.setLevel(logging.DEBUG)
 
 from restic_exporter.restic_exporter import (
     get_snapshot_key_from_args,
+    main,
+    EXPORTERS,
     ResticExecutor,
     ResticBackupStatus,
     ResticSnapshotKeys,
@@ -288,7 +291,7 @@ def test_restic_stats_generator_get_piped_stats_backup_summary():
     assert stats == []
 
 
-def test_restic_get_snapshot_key_from_args(caplog):
+def test_get_snapshot_key_from_args(caplog):
     ap = argparse.ArgumentParser()
     ap.add_argument("--backup-host")
     ap.add_argument("--backup-path", nargs="+", action="extend")
@@ -305,19 +308,84 @@ def test_restic_get_snapshot_key_from_args(caplog):
     )
 
     # Test: Missing --backup-host
-    args = ap.parse_args(
-        ["--backup-path=/path", "--backup-tag", "tag1"]
-    )
+    args = ap.parse_args(["--backup-path=/path", "--backup-tag", "tag1"])
     with pytest.raises(SystemExit):
         get_snapshot_key_from_args(ap, args)
         assert "Backup host must be provided" in caplog.text
 
     # Test: Multiple tags
     args = ap.parse_args(
-        ["--backup-host", "host", "--backup-path=/path", "--backup-tag", "tag1,tag2 tag3", "--backup-tag", "tag4"]
+        [
+            "--backup-host",
+            "host",
+            "--backup-path=/path",
+            "--backup-tag",
+            "tag1,tag2 tag3",
+            "--backup-tag",
+            "tag4",
+        ]
     )
     assert get_snapshot_key_from_args(ap, args) == ResticSnapshotKeys(
         hostname="host",
         paths=["/path"],
         tags=["tag1", "tag2", "tag3", "tag4"],
+    )
+
+
+def test_main_tty(caplog):
+    test_args = [sys.argv[0], "mock_exporter"]
+
+    mock_exporter = mock.Mock()
+    mock_exporter.construct_from_args = mock.Mock(return_value=mock_exporter)
+
+    mock_stdin = mock.Mock()
+    mock_stdin.isatty = mock.Mock(return_value=True)
+
+    mock_generator = mock.Mock()
+    mock_generator.get_snapshot_stats = mock.Mock(return_value=["stats_here"])
+
+    with mock.patch.dict(
+        EXPORTERS, {"mock_exporter": mock_exporter}, clear=True
+    ), mock.patch.object(sys, "argv", test_args), mock.patch(
+        "restic_exporter.restic_exporter.ResticStatsGenerator",
+        return_value=mock_generator,
+    ), mock.patch.object(
+        sys, "stdin", mock_stdin
+    ):
+        main()
+
+    assert mock_exporter.add_args_to_parser.called
+    assert mock_exporter.start.called
+    mock_exporter.export.assert_called_with("stats_here")
+
+
+def test_main_not_tty(caplog):
+    test_args = [sys.argv[0], "mock_exporter", "--backup-host=host"]
+
+    mock_exporter = mock.Mock()
+    mock_exporter.construct_from_args = mock.Mock(return_value=mock_exporter)
+
+    stdin_lines = ["line1", "line2", ""]
+    mock_stdin = mock.Mock()
+    mock_stdin.isatty = mock.Mock(return_value=False)
+    mock_stdin.readline = mock.Mock(side_effect=stdin_lines)
+
+    test_stats = [["stat1"], ["stat2", "stat3"]]
+    mock_generator = mock.Mock()
+    mock_generator.get_piped_stats = mock.Mock(side_effect=test_stats)
+
+    with mock.patch.dict(
+        EXPORTERS, {"mock_exporter": mock_exporter}, clear=True
+    ), mock.patch.object(sys, "argv", test_args), mock.patch(
+        "restic_exporter.restic_exporter.ResticStatsGenerator",
+        return_value=mock_generator,
+    ), mock.patch.object(
+        sys, "stdin", mock_stdin
+    ):
+        main()
+
+    assert mock_exporter.add_args_to_parser.called
+    assert mock_exporter.start.called
+    mock_exporter.export.assert_has_calls(
+        [mock.call("stat1"), mock.call("stat2"), mock.call("stat3")]
     )
