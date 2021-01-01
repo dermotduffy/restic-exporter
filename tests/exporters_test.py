@@ -192,7 +192,11 @@ def test_exporter_influxdb_export_restic_backup_summary(
         [
             {
                 "measurement": "restic_backup_summary",
-                "tags": {"hostname": "hostname", "paths": "path1,path2", "tags": "tag1,tag2"},
+                "tags": {
+                    "hostname": "hostname",
+                    "paths": "path1,path2",
+                    "tags": "tag1,tag2",
+                },
                 "time": current_datetime,
                 "fields": {
                     "files_new": 1265,

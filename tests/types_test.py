@@ -47,8 +47,12 @@ def test_json_to_stats(caplog):
     ) == ResticStats(total_size=1709, total_file_count=1, total_blob_count=None)
 
     # Test: Negatives fail validation.
-    assert json_to_stats(
-        {"total_size": -1, "total_file_count": 1.0, "total_blob_count": None}) is None
+    assert (
+        json_to_stats(
+            {"total_size": -1, "total_file_count": 1.0, "total_blob_count": None}
+        )
+        is None
+    )
     assert "Expected positive number" in caplog.text
 
     # Test: Missing keys result in a warning.
@@ -111,14 +115,25 @@ def test_json_to_backup_status(caplog):
     )
 
     # Test: Percent outside the range of 0-1.
-    assert json_to_backup_status({**TEST_BACKUP_STATUS_DATA, "percent_done": 2.0}, key) is None
+    assert (
+        json_to_backup_status({**TEST_BACKUP_STATUS_DATA, "percent_done": 2.0}, key)
+        is None
+    )
 
     # Test: Missing keys result in a warning.
-    assert json_to_backup_status(dict_without(TEST_BACKUP_STATUS_DATA, "total_files"), key) is None
+    assert (
+        json_to_backup_status(dict_without(TEST_BACKUP_STATUS_DATA, "total_files"), key)
+        is None
+    )
     assert "Skipping backup status with missing key" in caplog.text
 
     # Test: Invalid values result in a warning.
-    assert json_to_backup_status({**TEST_BACKUP_STATUS_DATA, "total_files": "garbage"}, key) is None
+    assert (
+        json_to_backup_status(
+            {**TEST_BACKUP_STATUS_DATA, "total_files": "garbage"}, key
+        )
+        is None
+    )
     assert "Skipping backup status with invalid value" in caplog.text
 
     # Test: None -> None.
@@ -148,11 +163,19 @@ def test_json_to_backup_summary(caplog):
     )
 
     # Test: Missing keys result in a warning.
-    assert json_to_backup_summary(dict_without(TEST_BACKUP_SUMMARY_DATA, "files_new"), key) is None
+    assert (
+        json_to_backup_summary(dict_without(TEST_BACKUP_SUMMARY_DATA, "files_new"), key)
+        is None
+    )
     assert "Skipping backup summary with missing key" in caplog.text
 
     # Test: Invalid values result in a warning.
-    assert json_to_backup_summary({**TEST_BACKUP_SUMMARY_DATA, "files_new": "garbage"}, key) is None
+    assert (
+        json_to_backup_summary(
+            {**TEST_BACKUP_SUMMARY_DATA, "files_new": "garbage"}, key
+        )
+        is None
+    )
     assert "Skipping backup summary with invalid value" in caplog.text
 
     # Test: None -> None.

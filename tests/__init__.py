@@ -1,7 +1,11 @@
 from typing import Any, Dict
 
 TEST_STATS_DATA_RAW = {"total_size": 1709, "total_file_count": 1, "total_blob_count": 4}
-TEST_STATS_DATA_RESTORE = {"total_size": 1710, "total_file_count": 2, "total_blob_count": 5}
+TEST_STATS_DATA_RESTORE = {
+    "total_size": 1710,
+    "total_file_count": 2,
+    "total_blob_count": 5,
+}
 
 TEST_SNAPSHOT_DATA = {
     "time": "2020-12-28T21:28:23.403981118-08:00",
