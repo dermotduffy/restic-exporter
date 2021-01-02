@@ -292,6 +292,12 @@ def test_get_snapshot_key_from_args(caplog: Any) -> None:
         get_snapshot_key_from_args(ap, args)
         assert "Backup host must be provided" in caplog.text
 
+    # Test: Missing --backup-path
+    args = ap.parse_args(["--backup-host=host", "--backup-tag", "tag1"])
+    with pytest.raises(SystemExit):
+        get_snapshot_key_from_args(ap, args)
+        assert "Backup path must be provided" in caplog.text
+
     # Test: Multiple tags
     args = ap.parse_args(
         [
