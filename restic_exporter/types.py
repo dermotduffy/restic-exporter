@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from .const import (
     KEY_SNAPSHOT_HOSTNAME,
-    KEY_SNAPSHOT_ID,
+    KEY_SNAPSHOT_SHORT_ID,
     KEY_SNAPSHOT_PATHS,
     KEY_SNAPSHOT_TAGS,
     KEY_SNAPSHOT_TIME,
@@ -165,7 +165,7 @@ def json_to_snapshot(snapshot_json: Dict[str, Any]) -> Optional[ResticSnapshot]:
                 hostname=snapshot_json[KEY_SNAPSHOT_HOSTNAME],
                 paths=snapshot_json[KEY_SNAPSHOT_PATHS],
                 tags=snapshot_json.get(KEY_SNAPSHOT_TAGS),
-                snapshot_id=snapshot_json[KEY_SNAPSHOT_ID],
+                snapshot_id=snapshot_json[KEY_SNAPSHOT_SHORT_ID],
             ),
             snapshot_time=snapshot_time,
         )

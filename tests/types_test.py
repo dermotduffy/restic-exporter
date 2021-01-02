@@ -82,7 +82,7 @@ def test_json_to_snapshot(caplog: Any) -> None:
             hostname="hostname",
             paths=["/path/whatever"],
             tags=None,
-            snapshot_id="ab1234",
+            snapshot_id="ab12",
         ),
         snapshot_time=datetime.datetime(
             2020, 12, 28, 21, 28, 23, 403981, tzinfo=dateutil.tz.tzoffset(None, -28800)  # type: ignore

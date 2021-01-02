@@ -173,8 +173,8 @@ def test_restic_stats_generator_get_snapshot_stats() -> None:
     mock_executor.get_snapshots.assert_called_with(group_by="group_by", last=True)
     mock_executor.get_stats.assert_has_calls(
         [
-            mock.call(snapshot_ids=["ab1234"], mode=KEY_MODE_RAW_DATA),
-            mock.call(snapshot_ids=["ab1234"], mode=KEY_MODE_RESTORE_SIZE),
+            mock.call(snapshot_ids=["ab12"], mode=KEY_MODE_RAW_DATA),
+            mock.call(snapshot_ids=["ab12"], mode=KEY_MODE_RESTORE_SIZE),
         ]
     )
 
