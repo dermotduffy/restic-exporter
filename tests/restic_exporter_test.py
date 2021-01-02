@@ -4,28 +4,29 @@
 import argparse
 import datetime
 import json
-import pytest
+import pytest  #  type: ignore
 import logging
 import subprocess
 import sys
+from typing import Any, List, Optional
 from unittest import mock
 
 from restic_exporter.restic_exporter import (
     get_snapshot_key_from_args,
     main,
-    EXPORTERS,
     ResticExecutor,
-    ResticBackupStatus,
-    ResticSnapshotKeys,
-    ResticStatsBundle,
     ResticStatsGenerator,
 )
 from restic_exporter.types import (
+    ResticBackupStatus,
+    ResticSnapshotKeys,
+    ResticStatsBundle,
     json_to_backup_status,
     json_to_snapshot,
     json_to_stats,
     json_to_backup_summary,
 )
+import restic_exporter
 from restic_exporter import get_current_datetime
 
 from . import (
@@ -49,20 +50,20 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
 
-def test_get_current_datetime():
+def test_get_current_datetime() -> None:
     dt = get_current_datetime()
     assert dt
     assert type(dt) == datetime.datetime
 
 
-def _get_completed_process(args=[], rc=0, stdout="", stderr=""):
+def _get_completed_process(args: List[str] = [], rc: int = 0, stdout: str = "", stderr: str = "") -> subprocess.CompletedProcess:  # type: ignore
     return subprocess.CompletedProcess(
         args, returncode=rc, stdout=stdout, stderr=stderr
     )
 
 
 @mock.patch("restic_exporter.restic_exporter.subprocess")
-def test_restic_executor_get_stats(mock_subprocess, caplog):
+def test_restic_executor_get_stats(mock_subprocess: mock.Mock, caplog: Any) -> None:
     path_binary = "/path/to/binary"
     expected_args = [path_binary, "--json", "stats", "--mode=raw-data"]
     output = TEST_STATS_DATA_RAW
@@ -109,7 +110,7 @@ def test_restic_executor_get_stats(mock_subprocess, caplog):
 
 
 @mock.patch("restic_exporter.restic_exporter.subprocess")
-def test_restic_executor_get_snapshots(mock_subprocess, caplog):
+def test_restic_executor_get_snapshots(mock_subprocess: mock.Mock, caplog: Any) -> None:
     path_binary = "/path/to/binary"
     expected_args = [
         path_binary,
@@ -147,7 +148,7 @@ def test_restic_executor_get_snapshots(mock_subprocess, caplog):
     assert "No valid snapshots found" in caplog.text
 
 
-def test_restic_stats_generator_get_snapshot_stats():
+def test_restic_stats_generator_get_snapshot_stats() -> None:
     mock_executor = mock.Mock()
     generator = ResticStatsGenerator(
         mock_executor, group_by="group_by", last=True, backup_status_window_seconds=10
@@ -174,6 +175,7 @@ def test_restic_stats_generator_get_snapshot_stats():
     )
 
     expected_stats = json_to_snapshot(TEST_SNAPSHOT_DATA)
+    assert expected_stats
     expected_stats.stats = ResticStatsBundle(
         raw=json_to_stats(TEST_STATS_DATA_RAW),
         restore=json_to_stats(TEST_STATS_DATA_RESTORE),
@@ -183,9 +185,11 @@ def test_restic_stats_generator_get_snapshot_stats():
 
 
 @mock.patch("restic_exporter.restic_exporter.get_current_datetime")
-def test_restic_stats_generator_get_piped_stats_backup_status(mock_current_datetime):
+def test_restic_stats_generator_get_piped_stats_backup_status(
+    mock_current_datetime: mock.Mock,
+) -> None:
     generator = ResticStatsGenerator(
-        None, group_by="group_by", last=True, backup_status_window_seconds=10
+        mock.Mock(), group_by="group_by", last=True, backup_status_window_seconds=10
     )
 
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
@@ -224,13 +228,15 @@ def test_restic_stats_generator_get_piped_stats_backup_status(mock_current_datet
     assert stats == [json_to_backup_status(TEST_BACKUP_STATUS_DATA, key)]
 
 
-def test_restic_stats_generator_get_piped_stats_backup_summary():
+def test_restic_stats_generator_get_piped_stats_backup_summary() -> None:
     generator = ResticStatsGenerator(
-        None, group_by="group_by", last=True, backup_status_window_seconds=10
+        mock.Mock(), group_by="group_by", last=True, backup_status_window_seconds=10
     )
 
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
     backup_summary = json_to_backup_summary(TEST_BACKUP_SUMMARY_DATA, key)
+    assert backup_summary
+
     last_backup_status = ResticBackupStatus(
         key=backup_summary.key,
         files_total=backup_summary.files_processed,
@@ -238,7 +244,7 @@ def test_restic_stats_generator_get_piped_stats_backup_summary():
         percent_done=1.0,
         files_done=backup_summary.files_processed,
         bytes_done=backup_summary.bytes_processed,
-        seconds_elapsed=backup_summary.duration,
+        seconds_elapsed=int(backup_summary.duration),
     )
 
     # Test: Normal.
@@ -254,7 +260,7 @@ def test_restic_stats_generator_get_piped_stats_backup_summary():
     assert stats == []
 
 
-def test_get_snapshot_key_from_args(caplog):
+def test_get_snapshot_key_from_args(caplog: Any) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--backup-host")
     ap.add_argument("--backup-path", nargs="+", action="extend")
@@ -295,7 +301,7 @@ def test_get_snapshot_key_from_args(caplog):
     )
 
 
-def test_main_tty(caplog):
+def test_main_tty(caplog: Any) -> None:
     test_args = [sys.argv[0], "mock_exporter"]
 
     mock_exporter = mock.Mock()
@@ -308,7 +314,9 @@ def test_main_tty(caplog):
     mock_generator.get_snapshot_stats = mock.Mock(return_value=["stats_here"])
 
     with mock.patch.dict(
-        EXPORTERS, {"mock_exporter": mock_exporter}, clear=True
+        restic_exporter.exporters.EXPORTERS,
+        {"mock_exporter": mock_exporter},
+        clear=True,
     ), mock.patch.object(sys, "argv", test_args), mock.patch(
         "restic_exporter.restic_exporter.ResticStatsGenerator",
         return_value=mock_generator,
@@ -322,7 +330,7 @@ def test_main_tty(caplog):
     mock_exporter.export.assert_called_with("stats_here")
 
 
-def test_main_not_tty(caplog):
+def test_main_not_tty(caplog: Any) -> None:
     test_args = [sys.argv[0], "mock_exporter", "--backup-host=host"]
 
     mock_exporter = mock.Mock()
@@ -338,7 +346,9 @@ def test_main_not_tty(caplog):
     mock_generator.get_piped_stats = mock.Mock(side_effect=test_stats)
 
     with mock.patch.dict(
-        EXPORTERS, {"mock_exporter": mock_exporter}, clear=True
+        restic_exporter.exporters.EXPORTERS,
+        {"mock_exporter": mock_exporter},
+        clear=True,
     ), mock.patch.object(sys, "argv", test_args), mock.patch(
         "restic_exporter.restic_exporter.ResticStatsGenerator",
         return_value=mock_generator,

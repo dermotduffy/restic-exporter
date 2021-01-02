@@ -1,8 +1,9 @@
 """Test for the restic-exporter types"""
 import datetime
 import dateutil
-import pytest
+import pytest  # type: ignore
 import logging
+from typing import Any
 
 # TODO: typing for tests
 
@@ -30,7 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
 
-def test_json_to_stats(caplog):
+def test_json_to_stats(caplog: Any) -> None:
     # Test: Normal.
     assert json_to_stats(
         {"total_size": 1709, "total_file_count": 1, "total_blob_count": 4}
@@ -72,7 +73,7 @@ def test_json_to_stats(caplog):
     assert json_to_stats(None) is None
 
 
-def test_json_to_snapshot(caplog):
+def test_json_to_snapshot(caplog: Any) -> None:
     # Test: Normal.
     assert json_to_snapshot(TEST_SNAPSHOT_DATA) == ResticSnapshot(
         ResticSnapshotKeys(
@@ -82,7 +83,7 @@ def test_json_to_snapshot(caplog):
             snapshot_id="ab1234",
         ),
         snapshot_time=datetime.datetime(
-            2020, 12, 28, 21, 28, 23, 403981, tzinfo=dateutil.tz.tzoffset(None, -28800)
+            2020, 12, 28, 21, 28, 23, 403981, tzinfo=dateutil.tz.tzoffset(None, -28800)  # type: ignore
         ),
         stats=None,
     )
@@ -93,13 +94,13 @@ def test_json_to_snapshot(caplog):
 
     # Test: Invalid values result in a warning.
     assert json_to_snapshot({**TEST_SNAPSHOT_DATA, "time": "garbage"}) is None
-    assert "Skipping unparseable snapshot time" in caplog.text
+    assert "Skipping unparsable snapshot time" in caplog.text
 
     # Test: None -> None.
-    assert json_to_snapshot(None) is None
+    assert json_to_snapshot(None) is None  # type: ignore
 
 
-def test_json_to_backup_status(caplog):
+def test_json_to_backup_status(caplog: Any) -> None:
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
 
     # Test: Normal.
@@ -137,10 +138,10 @@ def test_json_to_backup_status(caplog):
     assert "Skipping backup status with invalid value" in caplog.text
 
     # Test: None -> None.
-    assert json_to_backup_status(None, key) is None
+    assert json_to_backup_status(None, key) is None  # type: ignore
 
 
-def test_json_to_backup_summary(caplog):
+def test_json_to_backup_summary(caplog: Any) -> None:
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
 
     # Test: Normal.
@@ -179,10 +180,10 @@ def test_json_to_backup_summary(caplog):
     assert "Skipping backup summary with invalid value" in caplog.text
 
     # Test: None -> None.
-    assert json_to_backup_summary(None, key) is None
+    assert json_to_backup_summary(None, key) is None  # type: ignore
 
 
-def test_restic_snapshot_keys_validation():
+def test_restic_snapshot_keys_validation() -> None:
 
     # Test: Normal.
     assert ResticSnapshotKeys(hostname="hostname", paths=["path1"]) is not None
