@@ -214,8 +214,7 @@ class ExporterInfluxDB(Exporter):
 
     def _export_snapshot(self, snapshot: ResticSnapshot) -> None:
         """Export a snapshot object."""
-        if not snapshot.stats:
-            return
+        assert snapshot.stats is not None
         fields = {
             KEY_SNAPSHOT_ID: snapshot.key.snapshot_id,
         }
