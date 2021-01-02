@@ -5,8 +5,6 @@ import pytest  # type: ignore
 import logging
 from typing import Any
 
-# TODO: typing for tests
-
 from restic_exporter.types import (
     ResticBackupStatus,
     ResticBackupSummary,
