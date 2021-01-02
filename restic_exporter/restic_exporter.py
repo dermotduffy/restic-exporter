@@ -43,7 +43,6 @@ _LOGGER.level = logging.DEBUG
 
 
 # TODO restic args arbitrary (e.g. -r --repository_file)
-# TODO verify consts, may need to rename a few.
 # TODO get restic tables as close to json output as possible.
 
 
