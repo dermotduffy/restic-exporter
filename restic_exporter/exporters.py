@@ -317,7 +317,8 @@ class ExporterInfluxDB(Exporter):
                 points.extend(self._export_backup_summary(stat))
             elif isinstance(stat, ResticSnapshot):
                 points.extend(self._export_snapshot(stat))
-            _LOGGER.warning(f"ExporterInfluxDB cannot handle stats of type: {stat}")
+            else:
+                _LOGGER.warning(f"ExporterInfluxDB cannot handle stats of type: {stat}")
         self._submit_points(points)
 
 
