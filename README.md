@@ -1,6 +1,6 @@
 [![PyPi](https://img.shields.io/pypi/v/restic-exporter.svg)](https://pypi.org/project/restic-exporter/)
 [![PyPi](https://img.shields.io/pypi/pyversions/restic-exporter.svg)](https://pypi.org/project/restic-exporter/)
-[![Build Status](https://travis-ci.com/dermotduffy/restic-exporter.svg?branch=master)](https://travis-ci.com/dermotduffy/restic-exporter)
+[![Build Status](https://travis-ci.com/dermotduffy/restic-exporter.svg?branch=main)](https://travis-ci.com/dermotduffy/restic-exporter)
 [![Coverage](https://img.shields.io/codecov/c/github/dermotduffy/restic-exporter)](https://codecov.io/gh/dermotduffy/restic-exporter)
 
 # Restic Exporter
