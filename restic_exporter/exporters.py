@@ -119,7 +119,14 @@ class ExporterInfluxDB(Exporter):
     #   restore_size_bytes
     #   restore_size_file_count
 
-    def __init__(self, host: str, port: int, username: Optional[str], password: Optional[str], database: str):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        username: Optional[str],
+        password: Optional[str],
+        database: str,
+    ):
         self._host = host
         self._port = port
         self._username = username
@@ -198,17 +205,21 @@ class ExporterInfluxDB(Exporter):
         }
         optional_fields = {}
         if snapshot.stats.raw:
-            optional_fields.update({
-                KEY_RAW_SIZE: snapshot.stats.raw.total_size,
-                KEY_RAW_FILE_COUNT: snapshot.stats.raw.total_file_count,
-                KEY_RAW_BLOB_COUNT: snapshot.stats.raw.total_blob_count,
-            })
+            optional_fields.update(
+                {
+                    KEY_RAW_SIZE: snapshot.stats.raw.total_size,
+                    KEY_RAW_FILE_COUNT: snapshot.stats.raw.total_file_count,
+                    KEY_RAW_BLOB_COUNT: snapshot.stats.raw.total_blob_count,
+                }
+            )
         if snapshot.stats.restore:
-            optional_fields.update({
-                KEY_RESTORE_SIZE: snapshot.stats.restore.total_size,
-                KEY_RESTORE_FILE_COUNT: snapshot.stats.restore.total_file_count,
-                KEY_RESTORE_BLOB_COUNT: snapshot.stats.restore.total_blob_count,
-            })
+            optional_fields.update(
+                {
+                    KEY_RESTORE_SIZE: snapshot.stats.restore.total_size,
+                    KEY_RESTORE_FILE_COUNT: snapshot.stats.restore.total_file_count,
+                    KEY_RESTORE_BLOB_COUNT: snapshot.stats.restore.total_blob_count,
+                }
+            )
         fields.update(self._add_optional_fields(optional_fields))
 
         point = {

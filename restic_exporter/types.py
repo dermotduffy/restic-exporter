@@ -59,7 +59,7 @@ def validate_percent(_: Any, __: Any, val: Optional[float]) -> None:
         raise ValueError(f"Not a valid percent: {val}")
 
 
-def validate_positive(_: Any, __: Any, val: Optional[Union[float, int]]) ->  None:
+def validate_positive(_: Any, __: Any, val: Optional[Union[float, int]]) -> None:
     if val is not None and (val < 0):
         raise ValueError(f"Expected positive number: {val}")
 
@@ -95,10 +95,15 @@ def json_to_stats(stats_json: Optional[Dict[str, Any]]) -> Optional[ResticStats]
         _LOGGER.warning(f"Skipping restic stats with invalid value: {ex}")
     return None
 
+
 @attr.s
 class ResticStatsBundle:
-    raw: Optional[ResticStats] = attr.ib(validator=attr.validators.instance_of(ResticStats))
-    restore: Optional[ResticStats] = attr.ib(validator=attr.validators.instance_of(ResticStats))
+    raw: Optional[ResticStats] = attr.ib(
+        validator=attr.validators.instance_of(ResticStats)
+    )
+    restore: Optional[ResticStats] = attr.ib(
+        validator=attr.validators.instance_of(ResticStats)
+    )
 
 
 @attr.s
@@ -112,7 +117,9 @@ class ResticSnapshotKeys:
     tags: Optional[List[str]] = attr.ib(
         factory=list, validator=attr.validators.instance_of((type(None), list))
     )
-    snapshot_id: Optional[str] = attr.ib(default=None, converter=convert_str_or_none, validator=[validate_non_empty_str])
+    snapshot_id: Optional[str] = attr.ib(
+        default=None, converter=convert_str_or_none, validator=[validate_non_empty_str]
+    )
 
 
 @attr.s
@@ -151,6 +158,7 @@ def json_to_snapshot(snapshot_json: Dict[str, Any]) -> Optional[ResticSnapshot]:
     except KeyError as ex:
         _LOGGER.warning(f"Skipping snapshot with missing key: {ex}")
     return None
+
 
 @attr.s
 class ResticBackupStatus:
@@ -197,6 +205,7 @@ def json_to_backup_status(
     except ValueError as ex:
         _LOGGER.warning(f"Skipping backup status with invalid value: {ex}")
     return None
+
 
 @attr.s
 class ResticBackupSummary:

@@ -49,6 +49,7 @@ _LOGGER.level = logging.DEBUG
 # TODO reverify coverage
 # TODO export stats in batch rather than singular to allow write_point([])
 
+
 class ResticExecutor:
     def __init__(self, path_binary: str) -> None:
         self._path_binary = path_binary
