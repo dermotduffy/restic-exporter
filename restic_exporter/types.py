@@ -110,10 +110,12 @@ class ResticStatsBundle:
     """A bundle of Restic stats."""
 
     raw: Optional[ResticStats] = attr.ib(
-        validator=attr.validators.instance_of(ResticStats)
+        validator=attr.validators.instance_of((type(None), ResticStats)),
+        default=None,
     )
     restore: Optional[ResticStats] = attr.ib(
-        validator=attr.validators.instance_of(ResticStats)
+        validator=attr.validators.instance_of((type(None), ResticStats)),
+        default=None,
     )
 
 

@@ -315,6 +315,18 @@ def test_exporter_influxdb_export_repo(
 
 
 @mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
+def test_exporter_influxdb_export_repo_no_fields(mock_influxdb: mock.Mock) -> None:
+    """Test ExporterInfluxDB.export() for repo stats."""
+    (exporter, mock_influxdb_client) = setup_test_influxdb_exporter(mock_influxdb)
+
+    # Ensure a point with no repo data doesn't get written.
+    repo = ResticRepoStats(stats=ResticStatsBundle())
+    exporter.export([repo])
+
+    assert mock_influxdb_client.write_points.assert_not_called
+
+
+@mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
 def test_exporter_influxdb_export_unknown(
     mock_influxdb: mock.Mock, caplog: Any
 ) -> None:
