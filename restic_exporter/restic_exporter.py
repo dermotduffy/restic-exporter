@@ -47,7 +47,6 @@ _LOGGER.level = logging.DEBUG
 # TODO verify consts, may need to rename a few.
 # TODO get restic tables as close to json output as possible.
 # TODO action=extent may not work in Python 3.7?
-# TODO reverify coverage
 # TODO export stats in batch rather than singular to allow write_point([])
 
 
