@@ -49,7 +49,6 @@ _LOGGER.level = logging.DEBUG
 # TODO action=extent may not work in Python 3.7?
 # TODO reverify coverage
 # TODO export stats in batch rather than singular to allow write_point([])
-# TODO Verify all methods/modules have docstrings
 
 
 class ResticExecutor:
@@ -207,11 +206,9 @@ def get_snapshot_key_from_args(
 ) -> ResticSnapshotKeys:
     """Generate a snapshot key from the command line arguments."""
 
-    def split_args(args: Union[str, List[str]]) -> List[str]:
-        out = []
-        for arg in args if isinstance(args, list) else [args]:
-            out.extend(re.split(r"[,\s]", arg))
-        return out
+    def split_arg(arg: str) -> List[str]:
+        _LOGGER.debug("splitting: %s" % args)
+        return re.split(r"[,\s]", arg)
 
     if args.backup_host is None:
         _LOGGER.error("Backup host must be provided (--backup-host)")
@@ -225,11 +222,11 @@ def get_snapshot_key_from_args(
 
     tags = None
     if args.backup_tag:
-        tags = split_args(args.backup_tag)
+        tags = split_arg(args.backup_tag)
 
     return ResticSnapshotKeys(
         hostname=args.backup_host,
-        paths=split_args(args.backup_path),
+        paths=split_arg(args.backup_path),
         tags=tags,
     )
 
@@ -265,16 +262,11 @@ def main() -> None:
     ap.add_argument("--backup-host", help="Host to attach to stats piped from backup.")
     ap.add_argument(
         "--backup-tag",
-        nargs="*",
-        action="extend",
-        default=None,
-        help="Tags to attach to stats piped from backup (comma/space separated, or specified multiple times)",
+        help="Tags to attach to stats piped from backup (comma/space separated)",
     )
     ap.add_argument(
         "--backup-path",
-        nargs="+",
-        action="extend",
-        help="Paths to attach to stats piped from backup (comma/space separated, or specified multiple times)",
+        help="Paths to attach to stats piped from backup (comma/space separated)",
     )
     ap.add_argument(
         "--backup-status-window-seconds",

@@ -273,8 +273,8 @@ def test_get_snapshot_key_from_args(caplog: Any) -> None:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--backup-host")
-    ap.add_argument("--backup-path", nargs="+", action="extend")
-    ap.add_argument("--backup-tag", nargs="+", action="extend")
+    ap.add_argument("--backup-path")
+    ap.add_argument("--backup-tag")
 
     # Test: Normal.
     args = ap.parse_args(
@@ -299,9 +299,7 @@ def test_get_snapshot_key_from_args(caplog: Any) -> None:
             "host",
             "--backup-path=/path",
             "--backup-tag",
-            "tag1,tag2 tag3",
-            "--backup-tag",
-            "tag4",
+            "tag1,tag2 tag3,tag4",
         ]
     )
     assert get_snapshot_key_from_args(ap, args) == ResticSnapshotKeys(
