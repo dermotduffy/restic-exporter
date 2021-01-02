@@ -38,7 +38,6 @@ from .const import (
 
 
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.level = logging.DEBUG
 
 
 def convert_int_or_none(val: Optional[int]) -> Optional[int]:

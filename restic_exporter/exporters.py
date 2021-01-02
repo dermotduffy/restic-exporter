@@ -55,7 +55,6 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.level = logging.DEBUG
 
 
 class Exporter:
