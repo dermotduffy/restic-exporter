@@ -41,14 +41,14 @@ from .const import (
     KEY_SUMMARY_TREE_BLOBS,
     MEASUREMENT_BACKUP_STATUS,
     MEASUREMENT_BACKUP_SUMMARY,
-    MEASUREMENT_REPO,
+    MEASUREMENT_REPO_STATS,
     MEASUREMENT_SNAPSHOTS,
 )
 
 from .types import (
     ResticBackupStatus,
     ResticBackupSummary,
-    ResticRepo,
+    ResticRepoStats,
     ResticSnapshot,
     ResticSnapshotKeys,
     ResticStatsBundle,
@@ -332,14 +332,14 @@ class ExporterInfluxDB(Exporter):
         }
         return [point]
 
-    def _export_repo(self, repo: ResticRepo) -> List[Dict[str, Any]]:
+    def _export_repo(self, repo: ResticRepoStats) -> List[Dict[str, Any]]:
         """Export a backup summary object."""
         fields = self._get_fields_from_stats_bundle(repo.stats)
         if not fields:
             return []
 
         point = {
-            "measurement": MEASUREMENT_REPO,
+            "measurement": MEASUREMENT_REPO_STATS,
             "time": get_current_datetime(),
             "fields": fields,
         }
@@ -355,7 +355,7 @@ class ExporterInfluxDB(Exporter):
                 points.extend(self._export_backup_summary(stat))
             elif isinstance(stat, ResticSnapshot):
                 points.extend(self._export_snapshot(stat))
-            elif isinstance(stat, ResticRepo):
+            elif isinstance(stat, ResticRepoStats):
                 points.extend(self._export_repo(stat))
             else:
                 _LOGGER.warning(f"ExporterInfluxDB cannot handle stats of type: {stat}")

@@ -18,7 +18,7 @@ from restic_exporter.restic_exporter import (
 )
 from restic_exporter.types import (
     ResticBackupStatus,
-    ResticRepo,
+    ResticRepoStats,
     ResticSnapshotKeys,
     ResticStatsBundle,
     json_to_backup_status,
@@ -285,7 +285,7 @@ def test_restic_stats_generator_get_repo_stats() -> None:
 
     stats = generator.get_repo_stats()
     assert stats == [
-        ResticRepo(
+        ResticRepoStats(
             stats=ResticStatsBundle(
                 raw=json_to_stats(TEST_STATS_DATA_RAW),
                 restore=json_to_stats(TEST_STATS_DATA_RESTORE),

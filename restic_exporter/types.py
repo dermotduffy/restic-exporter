@@ -278,7 +278,7 @@ def json_to_backup_summary(
 
 
 @attr.s
-class ResticRepo:
+class ResticRepoStats:
     """Restic repository statistics."""
 
     stats: ResticStatsBundle = attr.ib(

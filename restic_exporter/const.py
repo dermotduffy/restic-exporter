@@ -64,5 +64,5 @@ KEY_SUMMARY_TOTAL_FILES_PROCESSED = "total_files_processed"
 
 MEASUREMENT_BACKUP_STATUS = "restic_backup_status"
 MEASUREMENT_BACKUP_SUMMARY = "restic_backup_summary"
-MEASUREMENT_REPO = "restic_repo"
+MEASUREMENT_REPO_STATS = "restic_repo_stats"
 MEASUREMENT_SNAPSHOTS = "restic_snapshots"

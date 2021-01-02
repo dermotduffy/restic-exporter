@@ -13,7 +13,7 @@ from restic_exporter.exporters import Exporter, EXPORTERS
 from restic_exporter.types import (
     ResticBackupStatus,
     ResticBackupSummary,
-    ResticRepo,
+    ResticRepoStats,
     ResticSnapshot,
     ResticSnapshotKeys,
     ResticStats,
@@ -284,7 +284,7 @@ def test_exporter_influxdb_export_repo(
     """Test ExporterInfluxDB.export() for repo stats."""
     (exporter, mock_influxdb_client) = setup_test_influxdb_exporter(mock_influxdb)
 
-    repo = ResticRepo(
+    repo = ResticRepoStats(
         stats=ResticStatsBundle(
             raw=ResticStats(total_size=1709, total_file_count=1, total_blob_count=None),
             restore=ResticStats(
@@ -301,7 +301,7 @@ def test_exporter_influxdb_export_repo(
     mock_influxdb_client.write_points.assert_called_with(
         [
             {
-                "measurement": "restic_repo",
+                "measurement": "restic_repo_stats",
                 "time": current_datetime,
                 "fields": {
                     "raw_size": 1709,

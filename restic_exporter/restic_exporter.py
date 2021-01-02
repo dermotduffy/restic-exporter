@@ -28,7 +28,7 @@ from .exporters import EXPORTERS
 from .types import (
     ResticBackupStatus,
     ResticBackupSummary,
-    ResticRepo,
+    ResticRepoStats,
     ResticSnapshot,
     ResticSnapshotKeys,
     ResticStats,
@@ -190,10 +190,10 @@ class ResticStatsGenerator:
             )
         return snapshots
 
-    def get_repo_stats(self) -> List[ResticRepo]:
+    def get_repo_stats(self) -> List[ResticRepoStats]:
         """Get Restic repository statistics."""
         return [
-            ResticRepo(
+            ResticRepoStats(
                 stats=ResticStatsBundle(
                     raw=self._executor.get_stats(mode=KEY_MODE_RAW_DATA),
                     restore=self._executor.get_stats(mode=KEY_MODE_RESTORE_SIZE),
@@ -316,7 +316,7 @@ def main() -> None:
     )
 
     stats: List[
-        Union[ResticBackupStatus, ResticBackupSummary, ResticRepo, ResticSnapshot]
+        Union[ResticBackupStatus, ResticBackupSummary, ResticRepoStats, ResticSnapshot]
     ] = []
 
     if not sys.stdin.isatty():
