@@ -343,7 +343,7 @@ def test_main_tty(caplog: Any) -> None:
 
     assert mock_exporter.add_args_to_parser.called
     assert mock_exporter.start.called
-    mock_exporter.export.assert_called_with("stats_here")
+    mock_exporter.export.assert_called_with(["stats_here"])
 
 
 def test_main_not_tty(caplog: Any) -> None:
@@ -382,6 +382,4 @@ def test_main_not_tty(caplog: Any) -> None:
 
     assert mock_exporter.add_args_to_parser.called
     assert mock_exporter.start.called
-    mock_exporter.export.assert_has_calls(
-        [mock.call("stat1"), mock.call("stat2"), mock.call("stat3")]
-    )
+    mock_exporter.export.assert_called_with(["stat1", "stat2", "stat3"])

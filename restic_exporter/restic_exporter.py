@@ -45,8 +45,6 @@ _LOGGER.level = logging.DEBUG
 # TODO restic args arbitrary (e.g. -r --repository_file)
 # TODO verify consts, may need to rename a few.
 # TODO get restic tables as close to json output as possible.
-# TODO action=extent may not work in Python 3.7?
-# TODO export stats in batch rather than singular to allow write_point([])
 
 
 class ResticExecutor:
@@ -306,13 +304,11 @@ def main() -> None:
                 break
             stats.extend(generator.get_piped_stats(line, key))
             for exporter in exporters:
-                for stat in stats:
-                    exporter.export(stat)
+                exporter.export(stats)
     else:
         stats.extend(generator.get_snapshot_stats())
         for exporter in exporters:
-            for stat in stats:
-                exporter.export(stat)
+            exporter.export(stats)
 
 
 if __name__ == "__main__":

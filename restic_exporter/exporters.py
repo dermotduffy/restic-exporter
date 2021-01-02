@@ -3,7 +3,7 @@
 import argparse
 import os
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 import influxdb  # type: ignore
 
 from . import get_current_datetime
@@ -66,7 +66,7 @@ class Exporter:
         """Construct an exporter from command line arguments."""
         pass
 
-    def export(self, stats: Any) -> None:
+    def export(self, stats: List[Any]) -> None:
         """Export a statistic."""
         pass
 
@@ -198,11 +198,11 @@ class ExporterInfluxDB(Exporter):
         )
         self._client.create_database(self._database)
 
-    def _submit_point(self, point: Dict[str, Any]) -> None:
+    def _submit_points(self, points: List[Dict[str, Any]]) -> None:
         """Submit an InfluxDB point."""
         if self._client is not None:
-            _LOGGER.debug(f"Writing data to InfluxDB: {point} ")
-            self._client.write_points([point])
+            _LOGGER.debug(f"Writing data to InfluxDB: {points} ")
+            self._client.write_points(points)
 
     def _add_optional_fields(self, optional_fields: Dict[str, Any]) -> Dict[str, Any]:
         """Add optional fields to measurement data."""
@@ -212,7 +212,7 @@ class ExporterInfluxDB(Exporter):
                 out[key] = value
         return out
 
-    def _export_snapshot(self, snapshot: ResticSnapshot) -> None:
+    def _export_snapshot(self, snapshot: ResticSnapshot) -> List[Dict[str, Any]]:
         """Export a snapshot object."""
         assert snapshot.stats is not None
         fields = {
@@ -243,7 +243,7 @@ class ExporterInfluxDB(Exporter):
             "time": snapshot.snapshot_time,
             "fields": fields,
         }
-        self._submit_point(point)
+        return [point]
 
     def _get_influx_tags_from_key(self, key: ResticSnapshotKeys) -> Dict[str, str]:
         """Get influx tags from a snapshot key."""
@@ -255,7 +255,7 @@ class ExporterInfluxDB(Exporter):
             tags["tags"] = ",".join(key.tags)
         return tags
 
-    def _export_backup_status(self, stats: ResticBackupStatus) -> None:
+    def _export_backup_status(self, stats: ResticBackupStatus) -> List[Dict[str, Any]]:
         """Export a backup status object."""
         fields = {
             KEY_STATUS_FILES_TOTAL: stats.files_total,
@@ -276,9 +276,11 @@ class ExporterInfluxDB(Exporter):
             "time": get_current_datetime(),
             "fields": fields,
         }
-        self._submit_point(point)
+        return [point]
 
-    def _export_backup_summary(self, stats: ResticBackupSummary) -> None:
+    def _export_backup_summary(
+        self, stats: ResticBackupSummary
+    ) -> List[Dict[str, Any]]:
         """Export a backup summary object."""
         fields = {
             KEY_SUMMARY_FILES_NEW: stats.files_new,
@@ -299,17 +301,20 @@ class ExporterInfluxDB(Exporter):
             "time": get_current_datetime(),
             "fields": fields,
         }
-        self._submit_point(point)
+        return [point]
 
-    def export(self, stats: Any) -> None:
+    def export(self, stats: List[Any]) -> None:
         """Export a statistics object."""
-        if isinstance(stats, ResticBackupStatus):
-            return self._export_backup_status(stats)
-        elif isinstance(stats, ResticBackupSummary):
-            return self._export_backup_summary(stats)
-        elif isinstance(stats, ResticSnapshot):
-            return self._export_snapshot(stats)
-        _LOGGER.warning(f"ExporterInfluxDB cannot handle stats of type: {stats}")
+        points = []
+        for stat in stats:
+            if isinstance(stat, ResticBackupStatus):
+                points.extend(self._export_backup_status(stat))
+            elif isinstance(stat, ResticBackupSummary):
+                points.extend(self._export_backup_summary(stat))
+            elif isinstance(stat, ResticSnapshot):
+                points.extend(self._export_snapshot(stat))
+            _LOGGER.warning(f"ExporterInfluxDB cannot handle stats of type: {stat}")
+        self._submit_points(points)
 
 
 EXPORTERS = {

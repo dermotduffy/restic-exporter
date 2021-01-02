@@ -47,7 +47,7 @@ def test_exporter_start() -> None:
 def test_exporter_export() -> None:
     """Test Exporter.export()."""
     exporter = Exporter()
-    exporter.export("will_be_ignored")
+    exporter.export([])
 
 
 def test_exporter_get_password(tmp_path: str) -> None:
@@ -148,7 +148,7 @@ def test_exporter_influxdb_export_restic_backup_status(
     current_datetime = datetime.datetime(2020, 12, 30, 8, 27, 23)
     mock_current_datetime.return_value = current_datetime
 
-    exporter.export(backup_status)
+    exporter.export([backup_status])
 
     mock_influxdb_client.write_points.assert_called_with(
         [
@@ -198,7 +198,7 @@ def test_exporter_influxdb_export_restic_backup_summary(
     current_datetime = datetime.datetime(2020, 12, 30, 8, 27, 23)
     mock_current_datetime.return_value = current_datetime
 
-    exporter.export(backup_summary)
+    exporter.export([backup_summary])
 
     mock_influxdb_client.write_points.assert_called_with(
         [
@@ -251,7 +251,7 @@ def test_exporter_influxdb_export_restic_snapshot(mock_influxdb: mock.Mock) -> N
         ),
     )
 
-    exporter.export(snapshot)
+    exporter.export([snapshot])
 
     mock_influxdb_client.write_points.assert_called_with(
         [
@@ -278,6 +278,6 @@ def test_exporter_influxdb_export_unknown(
     """Test ExporterInfluxDB.export() for unknown stats types."""
     (exporter, mock_influxdb_client) = setup_test_influxdb_exporter(mock_influxdb)
 
-    exporter.export("this_is_not_an_expected_type")
+    exporter.export("this_is_not_an_expected_type")  # type: ignore
 
     assert "cannot handle stats of type" in caplog.text
