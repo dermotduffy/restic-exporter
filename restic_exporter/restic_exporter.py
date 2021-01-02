@@ -42,9 +42,6 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.level = logging.DEBUG
 
 
-# TODO get restic tables as close to json output as possible.
-
-
 class ResticExecutor:
     """Executes restic commands."""
 

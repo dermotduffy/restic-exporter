@@ -162,6 +162,8 @@ def test_json_to_backup_summary(caplog: Any) -> None:
         dirs_changed=44,
         dirs_unmodified=17511,
         data_added=14909514,
+        data_blobs=849,
+        tree_blobs=262,
         files_processed=78943,
         bytes_processed=1667325955,
         duration=4.035790225,

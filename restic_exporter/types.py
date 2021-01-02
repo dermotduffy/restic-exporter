@@ -22,6 +22,7 @@ from .const import (
     KEY_STATUS_SECONDS_ELAPSED,
     KEY_STATUS_SECONDS_REMAINING,
     KEY_SUMMARY_DATA_ADDED,
+    KEY_SUMMARY_DATA_BLOBS,
     KEY_SUMMARY_DIRS_CHANGED,
     KEY_SUMMARY_DIRS_NEW,
     KEY_SUMMARY_DIRS_UNMODIFIED,
@@ -29,6 +30,7 @@ from .const import (
     KEY_SUMMARY_FILES_NEW,
     KEY_SUMMARY_FILES_UNMODIFIED,
     KEY_SUMMARY_SNAPSHOT_ID,
+    KEY_SUMMARY_TREE_BLOBS,
     KEY_SUMMARY_TOTAL_BYTES_PROCESSED,
     KEY_SUMMARY_TOTAL_DURATION,
     KEY_SUMMARY_TOTAL_FILES_PROCESSED,
@@ -240,6 +242,8 @@ class ResticBackupSummary:
     data_added: int = attr.ib(converter=int, validator=[validate_positive])
     files_processed: int = attr.ib(converter=int, validator=[validate_positive])
     bytes_processed: int = attr.ib(converter=int, validator=[validate_positive])
+    data_blobs: int = attr.ib(converter=int, validator=[validate_positive])
+    tree_blobs: int = attr.ib(converter=int, validator=[validate_positive])
     duration: float = attr.ib(converter=float, validator=[validate_positive])
 
 
@@ -262,6 +266,8 @@ def json_to_backup_summary(
             data_added=summary_json[KEY_SUMMARY_DATA_ADDED],
             files_processed=summary_json[KEY_SUMMARY_TOTAL_FILES_PROCESSED],
             bytes_processed=summary_json[KEY_SUMMARY_TOTAL_BYTES_PROCESSED],
+            data_blobs=summary_json[KEY_SUMMARY_DATA_BLOBS],
+            tree_blobs=summary_json[KEY_SUMMARY_TREE_BLOBS],
             duration=summary_json[KEY_SUMMARY_TOTAL_DURATION],
         )
     except KeyError as ex:

@@ -18,7 +18,7 @@ from .const import (
     KEY_RESTORE_BLOB_COUNT,
     KEY_RESTORE_FILE_COUNT,
     KEY_RESTORE_SIZE,
-    KEY_SNAPSHOT_ID,
+    KEY_SNAPSHOT_SHORT_ID,
     KEY_STATUS_BYTES_DONE,
     KEY_STATUS_BYTES_TOTAL,
     KEY_STATUS_FILES_DONE,
@@ -27,6 +27,7 @@ from .const import (
     KEY_STATUS_SECONDS_ELAPSED,
     KEY_STATUS_SECONDS_REMAINING,
     KEY_SUMMARY_DATA_ADDED,
+    KEY_SUMMARY_DATA_BLOBS,
     KEY_SUMMARY_DIRS_CHANGED,
     KEY_SUMMARY_DIRS_NEW,
     KEY_SUMMARY_DIRS_UNMODIFIED,
@@ -37,6 +38,7 @@ from .const import (
     KEY_SUMMARY_TOTAL_BYTES_PROCESSED,
     KEY_SUMMARY_TOTAL_DURATION,
     KEY_SUMMARY_TOTAL_FILES_PROCESSED,
+    KEY_SUMMARY_TREE_BLOBS,
     MEASUREMENT_BACKUP_STATUS,
     MEASUREMENT_BACKUP_SUMMARY,
     MEASUREMENT_SNAPSHOTS,
@@ -216,7 +218,7 @@ class ExporterInfluxDB(Exporter):
         """Export a snapshot object."""
         assert snapshot.stats is not None
         fields = {
-            KEY_SNAPSHOT_ID: snapshot.key.snapshot_id,
+            KEY_SNAPSHOT_SHORT_ID: snapshot.key.snapshot_id,
         }
         optional_fields = {}
         if snapshot.stats.raw:
@@ -290,10 +292,12 @@ class ExporterInfluxDB(Exporter):
             KEY_SUMMARY_DIRS_CHANGED: stats.dirs_changed,
             KEY_SUMMARY_DIRS_UNMODIFIED: stats.dirs_unmodified,
             KEY_SUMMARY_DATA_ADDED: stats.data_added,
+            KEY_SUMMARY_DATA_BLOBS: stats.data_blobs,
+            KEY_SUMMARY_SNAPSHOT_ID: stats.key.snapshot_id,
             KEY_SUMMARY_TOTAL_FILES_PROCESSED: stats.files_processed,
             KEY_SUMMARY_TOTAL_BYTES_PROCESSED: stats.bytes_processed,
             KEY_SUMMARY_TOTAL_DURATION: stats.duration,
-            KEY_SUMMARY_SNAPSHOT_ID: stats.key.snapshot_id,
+            KEY_SUMMARY_TREE_BLOBS: stats.tree_blobs,
         }
         point = {
             "measurement": MEASUREMENT_BACKUP_SUMMARY,
