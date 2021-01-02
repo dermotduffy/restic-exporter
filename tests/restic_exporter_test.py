@@ -345,7 +345,12 @@ def test_main_tty(caplog: Any) -> None:
 def test_main_not_tty(caplog: Any) -> None:
     """Test the main() function with input not from a tty."""
 
-    test_args = [sys.argv[0], "mock_exporter", "--backup-host=host"]
+    test_args = [
+        sys.argv[0],
+        "mock_exporter",
+        "--backup-host=host",
+        "--backup-path=path",
+    ]
 
     mock_exporter = mock.Mock()
     mock_exporter.construct_from_args = mock.Mock(return_value=mock_exporter)
