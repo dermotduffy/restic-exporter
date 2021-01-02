@@ -205,7 +205,6 @@ def get_snapshot_key_from_args(
     """Generate a snapshot key from the command line arguments."""
 
     def split_arg(arg: str) -> List[str]:
-        _LOGGER.debug("splitting: %s" % args)
         return re.split(r"[,\s]", arg)
 
     if args.backup_host is None:
