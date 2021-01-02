@@ -46,36 +46,39 @@ _LOGGER.level = logging.DEBUG
 # TODO verify consts, may need to rename a few.
 # TODO get restic tables as close to json output as possible.
 # TODO action=extent may not work in Python 3.7?
-
+# TODO reverify coverage
+# TODO export stats in batch rather than singular to allow write_point([])
 
 class ResticExecutor:
     def __init__(self, path_binary: str) -> None:
         self._path_binary = path_binary
 
-    def _run_command(self, args: List[str]) -> Optional[Dict[str, Any]]:
+    def _run_command(self, args: List[str]) -> Any:
         args = [self._path_binary, "--json"] + args
         _LOGGER.debug(f"Running: {args}")
         out = subprocess.run(args, capture_output=True)
-        _LOGGER.debug(f">> Result (rc={out.returncode}): {out.stdout}, {out.stderr}")
+        _LOGGER.debug(
+            f">> Result (rc={out.returncode}): {out.stdout!r}, {out.stderr!r}"
+        )
         if out.returncode != 0:
             _LOGGER.error(
                 'Command failed ("'
                 + " ".join(args)
                 + f'") with exit code {out.returncode}, '
-                + f"stdout: {out.stdout}, stderr: {out.stderr}"
+                + f"stdout: {out.stdout!r}, stderr: {out.stderr!r}"
             )
-            return
+            return None
 
         try:
-            return json.loads(out.stdout)
+            return dict(json.loads(out.stdout))
         except (ValueError, json.decoder.JSONDecodeError):
-            _LOGGER.error(f"{args} yielded non-JSON output: {out.stdout}")
-            return
+            _LOGGER.error(f"{args} yielded non-JSON output: {out.stdout!r}")
+        return None
 
     def get_stats(
         self,
         mode: str,
-        snapshot_ids: Optional[List[ResticStats]] = None,
+        snapshot_ids: Optional[List[str]] = None,
     ) -> Optional[ResticStats]:
         return json_to_stats(
             self._run_command(
@@ -83,16 +86,18 @@ class ResticExecutor:
             )
         )
 
-    def get_snapshots(self, group_by, last) -> List[ResticSnapshot]:
+    def get_snapshots(self, group_by: str, last: bool) -> List[ResticSnapshot]:
         result = self._run_command(
             [KEY_COMMAND_SNAPSHOTS]
             + ([f"--group-by={group_by}"])
             + (["--last"] if last else [])
         )
-        snapshots = []
+        snapshots: List[ResticSnapshot] = []
         for grouped_snapshot in result or []:
-            for snapshot in grouped_snapshot.get(KEY_SNAPSHOTS) or []:
-                snapshots += [json_to_snapshot(snapshot)] or []
+            for json_snapshot in grouped_snapshot.get(KEY_SNAPSHOTS) or []:
+                snapshot = json_to_snapshot(json_snapshot)
+                if snapshot:
+                    snapshots.append(snapshot)
 
         if not snapshots:
             _LOGGER.warning(f"No valid snapshots found in JSON: {result}")
@@ -100,13 +105,19 @@ class ResticExecutor:
 
 
 class ResticStatsGenerator:
-    def __init__(self, executor, group_by, last, backup_status_window_seconds):
+    def __init__(
+        self,
+        executor: ResticExecutor,
+        group_by: str,
+        last: bool,
+        backup_status_window_seconds: int,
+    ):
         self._executor = executor
         self._group_by = group_by
         self._last = last
         self._backup_status_window_seconds: int = backup_status_window_seconds
 
-        self._backup_status_last_update: datetime.datetime = None
+        self._backup_status_last_update: Optional[datetime.datetime] = None
 
     def _generate_last_status_from_summary(
         self, summary: ResticBackupSummary
@@ -118,11 +129,11 @@ class ResticStatsGenerator:
             percent_done=1.0,
             files_done=summary.files_processed,
             bytes_done=summary.bytes_processed,
-            seconds_elapsed=summary.duration,
+            seconds_elapsed=int(summary.duration),
         )
 
     def get_piped_stats(
-        self, line: bytes, key: ResticSnapshotKeys
+        self, line: str, key: ResticSnapshotKeys
     ) -> List[Union[ResticBackupStatus, ResticBackupSummary]]:
         try:
             data = json.loads(line)
@@ -144,7 +155,9 @@ class ResticStatsGenerator:
             ):
                 return []
             self._backup_status_last_update = now
-            return [json_to_backup_status(data, key)]
+            status = json_to_backup_status(data, key)
+            if status:
+                return [status]
         elif data[KEY_MESSAGE_TYPE] == KEY_MESSAGE_TYPE_SUMMARY:
             summary = json_to_backup_summary(data, key)
             if not summary:
@@ -157,6 +170,8 @@ class ResticStatsGenerator:
             group_by=self._group_by, last=self._last
         )
         for snapshot in snapshots:
+            if not snapshot.key.snapshot_id:
+                continue
             snapshot.stats = ResticStatsBundle(
                 raw=self._executor.get_stats(
                     snapshot_ids=[snapshot.key.snapshot_id], mode=KEY_MODE_RAW_DATA
@@ -175,7 +190,7 @@ class ResticStatsGenerator:
 def get_snapshot_key_from_args(
     ap: argparse.ArgumentParser, args: argparse.Namespace
 ) -> ResticSnapshotKeys:
-    def split_args(args: List[str]) -> List[str]:
+    def split_args(args: Union[str, List[str]]) -> List[str]:
         out = []
         for arg in args if isinstance(args, list) else [args]:
             out.extend(re.split(r"[,\s]", arg))
@@ -186,19 +201,23 @@ def get_snapshot_key_from_args(
         ap.print_usage()
         ap.exit()
 
-    paths = tags = None
-    if args.backup_path:
-        paths = split_args(args.backup_path)
+    if args.backup_path is None:
+        _LOGGER.error("Backup path must be provided (--backup-path)")
+        ap.print_usage()
+        ap.exit()
+
+    tags = None
     if args.backup_tag:
         tags = split_args(args.backup_tag)
+
     return ResticSnapshotKeys(
         hostname=args.backup_host,
-        paths=paths,
+        paths=split_args(args.backup_path),
         tags=tags,
     )
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "-r", "--restic_path", default="restic", help="Path to restic binary"
@@ -237,7 +256,6 @@ def main():
         "--backup-path",
         nargs="+",
         action="extend",
-        default=None,
         help="Paths to attach to stats piped from backup (comma/space separated, or specified multiple times)",
     )
     ap.add_argument(
@@ -272,18 +290,20 @@ def main():
         backup_status_window_seconds=args.backup_status_window_seconds,
     )
 
+    stats: List[Union[ResticBackupStatus, ResticBackupSummary, ResticSnapshot]] = []
+
     if not sys.stdin.isatty():
         key = get_snapshot_key_from_args(ap, args)
         while True:
             line = sys.stdin.readline()
             if not line:
                 break
-            stats = generator.get_piped_stats(line, key)
+            stats.extend(generator.get_piped_stats(line, key))
             for exporter in exporters:
                 for stat in stats:
                     exporter.export(stat)
     else:
-        stats = generator.get_snapshot_stats()
+        stats.extend(generator.get_snapshot_stats())
         for exporter in exporters:
             for stat in stats:
                 exporter.export(stat)

@@ -2,7 +2,7 @@ import attr
 from dateutil import parser as dateutil_parser
 import datetime
 import logging
-from typing import Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional, Union
 
 from .const import (
     KEY_SNAPSHOT_HOSTNAME,
@@ -38,33 +38,33 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.level = logging.DEBUG
 
 
-def convert_type_or_none(cast_type, val):
+def convert_type_or_none(cast_type: type, val: Any) -> Any:
     return cast_type(val) if val is not None else val
 
 
-def convert_int_or_none(val):
-    return convert_type_or_none(int, val)
+def convert_int_or_none(val: Optional[int]) -> Optional[int]:
+    return int(val) if val is not None else val
 
 
-def convert_float_or_none(val):
-    return convert_type_or_none(float, val)
+def convert_float_or_none(val: Optional[float]) -> Optional[float]:
+    return float(val) if val is not None else val
 
 
-def convert_str_or_none(val):
-    return convert_type_or_none(str, val)
+def convert_str_or_none(val: Optional[str]) -> Optional[str]:
+    return str(val) if val is not None else val
 
 
-def validate_percent(_, __, val):
+def validate_percent(_: Any, __: Any, val: Optional[float]) -> None:
     if val is not None and (val < 0 or val > 1):
         raise ValueError(f"Not a valid percent: {val}")
 
 
-def validate_positive(_, __, val):
+def validate_positive(_: Any, __: Any, val: Optional[Union[float, int]]) ->  None:
     if val is not None and (val < 0):
         raise ValueError(f"Expected positive number: {val}")
 
 
-def validate_non_empty_str(_, __, val):
+def validate_non_empty_str(_: Any, __: Any, val: Optional[str]) -> None:
     if val == "":
         raise ValueError(f"Expected non-empty string: {val}")
 
@@ -78,9 +78,9 @@ class ResticStats:
     )
 
 
-def json_to_stats(stats_json: Dict[str, Any]) -> Optional[ResticStats]:
+def json_to_stats(stats_json: Optional[Dict[str, Any]]) -> Optional[ResticStats]:
     if not stats_json:
-        return
+        return None
 
     blob_count = stats_json.get(KEY_STATS_TOTAL_BLOB_COUNT)
     try:
@@ -93,12 +93,12 @@ def json_to_stats(stats_json: Dict[str, Any]) -> Optional[ResticStats]:
         _LOGGER.warning(f"Skipping restic stats with missing key: {ex}")
     except ValueError as ex:
         _LOGGER.warning(f"Skipping restic stats with invalid value: {ex}")
-
+    return None
 
 @attr.s
 class ResticStatsBundle:
-    raw: ResticStats = attr.ib(validator=attr.validators.instance_of(ResticStats))
-    restore: ResticStats = attr.ib(validator=attr.validators.instance_of(ResticStats))
+    raw: Optional[ResticStats] = attr.ib(validator=attr.validators.instance_of(ResticStats))
+    restore: Optional[ResticStats] = attr.ib(validator=attr.validators.instance_of(ResticStats))
 
 
 @attr.s
@@ -107,14 +107,12 @@ class ResticSnapshotKeys:
         validator=[attr.validators.instance_of(str), validate_non_empty_str]
     )
     paths: List[str] = attr.ib(
+        factory=list, validator=attr.validators.instance_of(list)
+    )
+    tags: Optional[List[str]] = attr.ib(
         factory=list, validator=attr.validators.instance_of((type(None), list))
     )
-    tags: List[str] = attr.ib(
-        factory=list, validator=attr.validators.instance_of((type(None), list))
-    )
-    snapshot_id: str = attr.ib(
-        default=None, converter=convert_str_or_none, validator=[validate_non_empty_str]
-    )
+    snapshot_id: Optional[str] = attr.ib(default=None, converter=convert_str_or_none, validator=[validate_non_empty_str])
 
 
 @attr.s
@@ -133,14 +131,14 @@ class ResticSnapshot:
 
 def json_to_snapshot(snapshot_json: Dict[str, Any]) -> Optional[ResticSnapshot]:
     if not snapshot_json:
-        return
+        return None
     try:
         snapshot_time = snapshot_json[KEY_SNAPSHOT_TIME]
         try:
             snapshot_time = dateutil_parser.parse(snapshot_time)
-        except (TypeError, dateutil_parser.ParserError):
+        except (TypeError, dateutil_parser.ParserError):  # type: ignore
             _LOGGER.warning(f"Skipping unparseable snapshot time: {snapshot_time}")
-            return
+            return None
         return ResticSnapshot(
             key=ResticSnapshotKeys(
                 hostname=snapshot_json[KEY_SNAPSHOT_HOSTNAME],
@@ -152,7 +150,7 @@ def json_to_snapshot(snapshot_json: Dict[str, Any]) -> Optional[ResticSnapshot]:
         )
     except KeyError as ex:
         _LOGGER.warning(f"Skipping snapshot with missing key: {ex}")
-
+    return None
 
 @attr.s
 class ResticBackupStatus:
@@ -161,28 +159,28 @@ class ResticBackupStatus:
     )
     files_total: int = attr.ib(converter=int, validator=[validate_positive])
     bytes_total: int = attr.ib(converter=int, validator=[validate_positive])
-    percent_done: float = attr.ib(
+    percent_done: Optional[float] = attr.ib(
         default=None, converter=convert_float_or_none, validator=[validate_percent]
     )
-    files_done: int = attr.ib(
+    files_done: Optional[int] = attr.ib(
         default=None, converter=convert_int_or_none, validator=[validate_positive]
     )
-    bytes_done: int = attr.ib(
+    bytes_done: Optional[int] = attr.ib(
         default=None, converter=convert_int_or_none, validator=[validate_positive]
     )
-    seconds_elapsed: int = attr.ib(
+    seconds_elapsed: Optional[int] = attr.ib(
         default=None, converter=convert_int_or_none, validator=[validate_positive]
     )
-    seconds_remaining: int = attr.ib(
+    seconds_remaining: Optional[int] = attr.ib(
         default=None, converter=convert_int_or_none, validator=[validate_positive]
     )
 
 
 def json_to_backup_status(
-    status_json, key: ResticSnapshotKeys
+    status_json: Dict[str, Any], key: ResticSnapshotKeys
 ) -> Optional[ResticBackupStatus]:
     if not status_json:
-        return
+        return None
     try:
         return ResticBackupStatus(
             key=key,
@@ -198,7 +196,7 @@ def json_to_backup_status(
         _LOGGER.warning(f"Skipping backup status with missing key: {ex}")
     except ValueError as ex:
         _LOGGER.warning(f"Skipping backup status with invalid value: {ex}")
-
+    return None
 
 @attr.s
 class ResticBackupSummary:
@@ -218,10 +216,10 @@ class ResticBackupSummary:
 
 
 def json_to_backup_summary(
-    summary_json, key: ResticSnapshotKeys
+    summary_json: Dict[str, Any], key: ResticSnapshotKeys
 ) -> Optional[ResticBackupSummary]:
     if not summary_json:
-        return
+        return None
     try:
         key.snapshot_id = summary_json[KEY_SUMMARY_SNAPSHOT_ID]
         return ResticBackupSummary(
@@ -241,3 +239,4 @@ def json_to_backup_summary(
         _LOGGER.warning(f"Skipping backup summary with missing key: {ex}")
     except ValueError as ex:
         _LOGGER.warning(f"Skipping backup summary with invalid value: {ex}")
+    return None

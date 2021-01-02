@@ -3,8 +3,8 @@
 import argparse
 import os
 import logging
-from typing import Any, Dict, Optional
-import influxdb
+from typing import Any, Dict, List, Optional
+import influxdb  # type: ignore
 
 from . import get_current_datetime
 
@@ -46,6 +46,7 @@ from .types import (
     ResticBackupStatus,
     ResticBackupSummary,
     ResticSnapshot,
+    ResticSnapshotKeys,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,26 +55,27 @@ _LOGGER.level = logging.DEBUG
 
 class Exporter:
     @classmethod
-    def add_args_to_parser(cls, args):
+    def add_args_to_parser(cls, args: argparse.ArgumentParser) -> None:
         pass
 
     @classmethod
-    def construct_from_args(cls, args):
+    def construct_from_args(cls, args: argparse.Namespace) -> Exporter:
         pass
 
-    def export(self, stats):
+    def export(self, stats: Any) -> None:
         pass
 
     @classmethod
     def get_password(
-        self, env_var: str, password_file_path: str = None
+        self, env_var: str, password_file_path: Optional[str] = None
     ) -> Optional[str]:
         if password_file_path is not None:
             return open(password_file_path).read().strip()
         if env_var in os.environ:
             return os.environ[env_var]
+        return None
 
-    def start(self):
+    def start(self) -> None:
         pass
 
 
@@ -117,13 +119,13 @@ class ExporterInfluxDB(Exporter):
     #   restore_size_bytes
     #   restore_size_file_count
 
-    def __init__(self, host, port, username, password, database):
+    def __init__(self, host: str, port: int, username: Optional[str], password: Optional[str], database: str):
         self._host = host
         self._port = port
         self._username = username
         self._password = password
         self._database = database
-        self._client = None
+        self._client: Optional[influxdb.InfluxDBClient] = None
 
     @classmethod
     def add_args_to_parser(cls, ap: argparse.ArgumentParser) -> None:
@@ -153,7 +155,7 @@ class ExporterInfluxDB(Exporter):
         )
 
     @classmethod
-    def construct_from_args(cls, args):
+    def construct_from_args(cls, args: argparse.Namespace) -> ExporterInfluxDB:
         password = Exporter.get_password(
             ENV_INFLUX_PASSWORD, args.influxdb_password_file
         )
@@ -166,7 +168,7 @@ class ExporterInfluxDB(Exporter):
             database=args.influxdb_database,
         )
 
-    def start(self):
+    def start(self) -> None:
         _LOGGER.debug(
             f"Starting InfluxDB connection to {self._host}:{self._port} "
             f"for user {self._username} to database {self._database}"
@@ -176,9 +178,10 @@ class ExporterInfluxDB(Exporter):
         )
         self._client.create_database(self._database)
 
-    def _submit_point(self, point):
-        _LOGGER.debug(f"Writing data to InfluxDB: {point} ")
-        self._client.write_points([point])
+    def _submit_point(self, point: Dict[str, Any]) -> None:
+        if self._client is not None:
+            _LOGGER.debug(f"Writing data to InfluxDB: {point} ")
+            self._client.write_points([point])
 
     def _add_optional_fields(self, optional_fields: Dict[str, Any]) -> Dict[str, Any]:
         out = {}
@@ -188,17 +191,24 @@ class ExporterInfluxDB(Exporter):
         return out
 
     def _export_snapshot(self, snapshot: ResticSnapshot) -> None:
+        if not snapshot.stats:
+            return
         fields = {
             KEY_SNAPSHOT_ID: snapshot.key.snapshot_id,
-            KEY_RAW_SIZE: snapshot.stats.raw.total_size,
-            KEY_RAW_FILE_COUNT: snapshot.stats.raw.total_file_count,
-            KEY_RESTORE_SIZE: int(snapshot.stats.restore.total_size),
-            KEY_RESTORE_FILE_COUNT: int(snapshot.stats.restore.total_file_count),
         }
-        optional_fields = {
-            KEY_RAW_BLOB_COUNT: snapshot.stats.raw.total_blob_count,
-            KEY_RESTORE_BLOB_COUNT: snapshot.stats.restore.total_blob_count,
-        }
+        optional_fields = {}
+        if snapshot.stats.raw:
+            optional_fields.update({
+                KEY_RAW_SIZE: snapshot.stats.raw.total_size,
+                KEY_RAW_FILE_COUNT: snapshot.stats.raw.total_file_count,
+                KEY_RAW_BLOB_COUNT: snapshot.stats.raw.total_blob_count,
+            })
+        if snapshot.stats.restore:
+            optional_fields.update({
+                KEY_RESTORE_SIZE: snapshot.stats.restore.total_size,
+                KEY_RESTORE_FILE_COUNT: snapshot.stats.restore.total_file_count,
+                KEY_RESTORE_BLOB_COUNT: snapshot.stats.restore.total_blob_count,
+            })
         fields.update(self._add_optional_fields(optional_fields))
 
         point = {
@@ -209,7 +219,7 @@ class ExporterInfluxDB(Exporter):
         }
         self._submit_point(point)
 
-    def _get_influx_tags_from_key(self, key):
+    def _get_influx_tags_from_key(self, key: ResticSnapshotKeys) -> Dict[str, str]:
         tags = {
             "hostname": key.hostname,
             "paths": ",".join(key.paths),
@@ -218,7 +228,7 @@ class ExporterInfluxDB(Exporter):
             tags["tags"] = ",".join(key.tags)
         return tags
 
-    def _export_backup_status(self, stats):
+    def _export_backup_status(self, stats: ResticBackupStatus) -> None:
         fields = {
             KEY_STATUS_FILES_TOTAL: stats.files_total,
             KEY_STATUS_BYTES_TOTAL: stats.bytes_total,
@@ -240,7 +250,7 @@ class ExporterInfluxDB(Exporter):
         }
         self._submit_point(point)
 
-    def _export_backup_summary(self, stats):
+    def _export_backup_summary(self, stats: ResticBackupSummary) -> None:
         fields = {
             KEY_SUMMARY_FILES_NEW: stats.files_new,
             KEY_SUMMARY_FILES_CHANGED: stats.files_changed,
@@ -262,7 +272,7 @@ class ExporterInfluxDB(Exporter):
         }
         self._submit_point(point)
 
-    def export(self, stats):
+    def export(self, stats: Any) -> None:
         if isinstance(stats, ResticBackupStatus):
             return self._export_backup_status(stats)
         elif isinstance(stats, ResticBackupSummary):
