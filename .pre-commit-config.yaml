@@ -36,3 +36,18 @@ repos:
     rev: 'v0.782'
     hooks:
       - id: mypy
+        args: 
+          - --warn-unused-configs
+          - --disallow-any-generics
+          - --disallow-subclassing-any
+          - --disallow-untyped-calls
+          - --disallow-untyped-defs
+          - --disallow-incomplete-defs
+          - --check-untyped-defs
+          - --disallow-untyped-decorators
+          - --no-implicit-optional
+          - --warn-redundant-casts
+          - --warn-unused-ignores
+          - --warn-return-any
+          - --no-implicit-reexport
+          - --warn-unreachable
