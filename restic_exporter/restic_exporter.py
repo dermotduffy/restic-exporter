@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Statistics exporter for restic backups."""
 
 import argparse
 import datetime
@@ -7,7 +8,7 @@ import sys
 import json
 import logging
 import subprocess
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from . import get_current_datetime
 
@@ -48,13 +49,18 @@ _LOGGER.level = logging.DEBUG
 # TODO action=extent may not work in Python 3.7?
 # TODO reverify coverage
 # TODO export stats in batch rather than singular to allow write_point([])
+# TODO Verify all methods/modules have docstrings
 
 
 class ResticExecutor:
+    """Executes restic commands."""
+
     def __init__(self, path_binary: str) -> None:
+        """Initialize Restic Executor."""
         self._path_binary = path_binary
 
     def _run_command(self, args: List[str]) -> Any:
+        """Run a Restic command."""
         args = [self._path_binary, "--json"] + args
         _LOGGER.debug(f"Running: {args}")
         out = subprocess.run(args, capture_output=True)
@@ -71,7 +77,7 @@ class ResticExecutor:
             return None
 
         try:
-            return dict(json.loads(out.stdout))
+            return json.loads(out.stdout)
         except (ValueError, json.decoder.JSONDecodeError):
             _LOGGER.error(f"{args} yielded non-JSON output: {out.stdout!r}")
         return None
@@ -81,6 +87,7 @@ class ResticExecutor:
         mode: str,
         snapshot_ids: Optional[List[str]] = None,
     ) -> Optional[ResticStats]:
+        """Get Restic statistics JSON."""
         return json_to_stats(
             self._run_command(
                 [KEY_COMMAND_STATS, f"--mode={mode}"] + (snapshot_ids or [])
@@ -88,6 +95,7 @@ class ResticExecutor:
         )
 
     def get_snapshots(self, group_by: str, last: bool) -> List[ResticSnapshot]:
+        """Get Restic snapshots JSON."""
         result = self._run_command(
             [KEY_COMMAND_SNAPSHOTS]
             + ([f"--group-by={group_by}"])
@@ -106,6 +114,8 @@ class ResticExecutor:
 
 
 class ResticStatsGenerator:
+    """Generate Restic statistics."""
+
     def __init__(
         self,
         executor: ResticExecutor,
@@ -113,6 +123,7 @@ class ResticStatsGenerator:
         last: bool,
         backup_status_window_seconds: int,
     ):
+        """Initialize Restic statistics generator."""
         self._executor = executor
         self._group_by = group_by
         self._last = last
@@ -123,6 +134,7 @@ class ResticStatsGenerator:
     def _generate_last_status_from_summary(
         self, summary: ResticBackupSummary
     ) -> ResticBackupStatus:
+        """Generate a status object from a backup summary."""
         return ResticBackupStatus(
             key=summary.key,
             files_total=summary.files_processed,
@@ -136,6 +148,7 @@ class ResticStatsGenerator:
     def get_piped_stats(
         self, line: str, key: ResticSnapshotKeys
     ) -> List[Union[ResticBackupStatus, ResticBackupSummary]]:
+        """Get statistics based on data piped in."""
         try:
             data = json.loads(line)
         except (ValueError, json.decoder.JSONDecodeError):
@@ -167,6 +180,7 @@ class ResticStatsGenerator:
         return []
 
     def get_snapshot_stats(self) -> List[ResticSnapshot]:
+        """Get Restic snapshots data."""
         snapshots = self._executor.get_snapshots(
             group_by=self._group_by, last=self._last
         )
@@ -191,6 +205,8 @@ class ResticStatsGenerator:
 def get_snapshot_key_from_args(
     ap: argparse.ArgumentParser, args: argparse.Namespace
 ) -> ResticSnapshotKeys:
+    """Generate a snapshot key from the command line arguments."""
+
     def split_args(args: Union[str, List[str]]) -> List[str]:
         out = []
         for arg in args if isinstance(args, list) else [args]:
@@ -219,6 +235,7 @@ def get_snapshot_key_from_args(
 
 
 def main() -> None:
+    """Restic Exporter main."""
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "-r", "--restic_path", default="restic", help="Path to restic binary"

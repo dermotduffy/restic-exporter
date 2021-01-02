@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+"""Exporters of Restic statistics."""
 
 import argparse
 import os
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 import influxdb  # type: ignore
 
 from . import get_current_datetime
@@ -54,21 +54,27 @@ _LOGGER.level = logging.DEBUG
 
 
 class Exporter:
+    """Generic baseclass for Restic exporters."""
+
     @classmethod
     def add_args_to_parser(cls, args: argparse.ArgumentParser) -> None:
+        """Add command line arguments to argument parser."""
         pass
 
     @classmethod
-    def construct_from_args(cls, args: argparse.Namespace) -> Exporter:
+    def construct_from_args(cls, args: argparse.Namespace) -> "Exporter":
+        """Construct an exporter from command line arguments."""
         pass
 
     def export(self, stats: Any) -> None:
+        """Export a statistic."""
         pass
 
     @classmethod
     def get_password(
         self, env_var: str, password_file_path: Optional[str] = None
     ) -> Optional[str]:
+        """Get a password from a file or environmental variable."""
         if password_file_path is not None:
             return open(password_file_path).read().strip()
         if env_var in os.environ:
@@ -76,10 +82,13 @@ class Exporter:
         return None
 
     def start(self) -> None:
+        """Start an exporter."""
         pass
 
 
 class ExporterInfluxDB(Exporter):
+    """InfluxDB exporter."""
+
     # restic_backup_progress:
     #   hostname
     #   paths
@@ -127,6 +136,7 @@ class ExporterInfluxDB(Exporter):
         password: Optional[str],
         database: str,
     ):
+        """Initialize InfluxDB exporter."""
         self._host = host
         self._port = port
         self._username = username
@@ -136,6 +146,7 @@ class ExporterInfluxDB(Exporter):
 
     @classmethod
     def add_args_to_parser(cls, ap: argparse.ArgumentParser) -> None:
+        """Add command line arguments to argument parser."""
         ap.add_argument(
             "--influxdb-host",
             default="localhost",
@@ -162,7 +173,8 @@ class ExporterInfluxDB(Exporter):
         )
 
     @classmethod
-    def construct_from_args(cls, args: argparse.Namespace) -> ExporterInfluxDB:
+    def construct_from_args(cls, args: argparse.Namespace) -> "ExporterInfluxDB":
+        """Construct an exporter from command line arguments."""
         password = Exporter.get_password(
             ENV_INFLUX_PASSWORD, args.influxdb_password_file
         )
@@ -176,6 +188,7 @@ class ExporterInfluxDB(Exporter):
         )
 
     def start(self) -> None:
+        """Start an exporter."""
         _LOGGER.debug(
             f"Starting InfluxDB connection to {self._host}:{self._port} "
             f"for user {self._username} to database {self._database}"
@@ -186,11 +199,13 @@ class ExporterInfluxDB(Exporter):
         self._client.create_database(self._database)
 
     def _submit_point(self, point: Dict[str, Any]) -> None:
+        """Submit an InfluxDB point."""
         if self._client is not None:
             _LOGGER.debug(f"Writing data to InfluxDB: {point} ")
             self._client.write_points([point])
 
     def _add_optional_fields(self, optional_fields: Dict[str, Any]) -> Dict[str, Any]:
+        """Add optional fields to measurement data."""
         out = {}
         for key, value in optional_fields.items():
             if value is not None:
@@ -198,6 +213,7 @@ class ExporterInfluxDB(Exporter):
         return out
 
     def _export_snapshot(self, snapshot: ResticSnapshot) -> None:
+        """Export a snapshot object."""
         if not snapshot.stats:
             return
         fields = {
@@ -231,6 +247,7 @@ class ExporterInfluxDB(Exporter):
         self._submit_point(point)
 
     def _get_influx_tags_from_key(self, key: ResticSnapshotKeys) -> Dict[str, str]:
+        """Get influx tags from a snapshot key."""
         tags = {
             "hostname": key.hostname,
             "paths": ",".join(key.paths),
@@ -240,6 +257,7 @@ class ExporterInfluxDB(Exporter):
         return tags
 
     def _export_backup_status(self, stats: ResticBackupStatus) -> None:
+        """Export a backup status object."""
         fields = {
             KEY_STATUS_FILES_TOTAL: stats.files_total,
             KEY_STATUS_BYTES_TOTAL: stats.bytes_total,
@@ -262,6 +280,7 @@ class ExporterInfluxDB(Exporter):
         self._submit_point(point)
 
     def _export_backup_summary(self, stats: ResticBackupSummary) -> None:
+        """Export a backup summary object."""
         fields = {
             KEY_SUMMARY_FILES_NEW: stats.files_new,
             KEY_SUMMARY_FILES_CHANGED: stats.files_changed,
@@ -284,6 +303,7 @@ class ExporterInfluxDB(Exporter):
         self._submit_point(point)
 
     def export(self, stats: Any) -> None:
+        """Export a statistics object."""
         if isinstance(stats, ResticBackupStatus):
             return self._export_backup_status(stats)
         elif isinstance(stats, ResticBackupSummary):

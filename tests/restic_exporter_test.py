@@ -1,14 +1,13 @@
-#!/usr/bin/python
 """Test for the restic-exporter."""
 
 import argparse
 import datetime
 import json
-import pytest  #  type: ignore
+import pytest  # type: ignore
 import logging
 import subprocess
 import sys
-from typing import Any, List, Optional
+from typing import Any, List
 from unittest import mock
 
 from restic_exporter.restic_exporter import (
@@ -51,12 +50,14 @@ _LOGGER.setLevel(logging.DEBUG)
 
 
 def test_get_current_datetime() -> None:
+    """Test get_current_datetime()."""
     dt = get_current_datetime()
     assert dt
     assert type(dt) == datetime.datetime
 
 
 def _get_completed_process(args: List[str] = [], rc: int = 0, stdout: str = "", stderr: str = "") -> subprocess.CompletedProcess:  # type: ignore
+    """Get a subprocess CompletedProcess object."""
     return subprocess.CompletedProcess(
         args, returncode=rc, stdout=stdout, stderr=stderr
     )
@@ -64,6 +65,7 @@ def _get_completed_process(args: List[str] = [], rc: int = 0, stdout: str = "", 
 
 @mock.patch("restic_exporter.restic_exporter.subprocess")
 def test_restic_executor_get_stats(mock_subprocess: mock.Mock, caplog: Any) -> None:
+    """Test the Restic Executor get_stats() method."""
     path_binary = "/path/to/binary"
     expected_args = [path_binary, "--json", "stats", "--mode=raw-data"]
     output = TEST_STATS_DATA_RAW
@@ -111,6 +113,8 @@ def test_restic_executor_get_stats(mock_subprocess: mock.Mock, caplog: Any) -> N
 
 @mock.patch("restic_exporter.restic_exporter.subprocess")
 def test_restic_executor_get_snapshots(mock_subprocess: mock.Mock, caplog: Any) -> None:
+    """Test the Restic Executor get_snapshots() method."""
+
     path_binary = "/path/to/binary"
     expected_args = [
         path_binary,
@@ -119,7 +123,6 @@ def test_restic_executor_get_snapshots(mock_subprocess: mock.Mock, caplog: Any) 
         "--group-by=host,path,tags",
         "--last",
     ]
-    output = TEST_GROUPED_SNAPSHOT_DATA
 
     r = ResticExecutor(path_binary)
 
@@ -128,7 +131,7 @@ def test_restic_executor_get_snapshots(mock_subprocess: mock.Mock, caplog: Any) 
         return_value=_get_completed_process(
             args=expected_args,
             rc=0,
-            stdout=json.dumps(output),
+            stdout=json.dumps(TEST_GROUPED_SNAPSHOT_DATA),
         )
     )
     stats = r.get_snapshots(group_by="host,path,tags", last=True)
@@ -149,6 +152,7 @@ def test_restic_executor_get_snapshots(mock_subprocess: mock.Mock, caplog: Any) 
 
 
 def test_restic_stats_generator_get_snapshot_stats() -> None:
+    """Test the Restic stats generator get_snapshot_stats() method."""
     mock_executor = mock.Mock()
     generator = ResticStatsGenerator(
         mock_executor, group_by="group_by", last=True, backup_status_window_seconds=10
@@ -188,6 +192,8 @@ def test_restic_stats_generator_get_snapshot_stats() -> None:
 def test_restic_stats_generator_get_piped_stats_backup_status(
     mock_current_datetime: mock.Mock,
 ) -> None:
+    """Test the Restic stats generator get_piped_stats() method with backup status."""
+
     generator = ResticStatsGenerator(
         mock.Mock(), group_by="group_by", last=True, backup_status_window_seconds=10
     )
@@ -229,6 +235,8 @@ def test_restic_stats_generator_get_piped_stats_backup_status(
 
 
 def test_restic_stats_generator_get_piped_stats_backup_summary() -> None:
+    """Test the Restic stats generator get_piped_stats() method with backup summary."""
+
     generator = ResticStatsGenerator(
         mock.Mock(), group_by="group_by", last=True, backup_status_window_seconds=10
     )
@@ -261,6 +269,8 @@ def test_restic_stats_generator_get_piped_stats_backup_summary() -> None:
 
 
 def test_get_snapshot_key_from_args(caplog: Any) -> None:
+    """Test generating a snapshot key from command line arguments."""
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--backup-host")
     ap.add_argument("--backup-path", nargs="+", action="extend")
@@ -302,6 +312,8 @@ def test_get_snapshot_key_from_args(caplog: Any) -> None:
 
 
 def test_main_tty(caplog: Any) -> None:
+    """Test the main() function with input from a tty."""
+
     test_args = [sys.argv[0], "mock_exporter"]
 
     mock_exporter = mock.Mock()
@@ -331,6 +343,8 @@ def test_main_tty(caplog: Any) -> None:
 
 
 def test_main_not_tty(caplog: Any) -> None:
+    """Test the main() function with input not from a tty."""
+
     test_args = [sys.argv[0], "mock_exporter", "--backup-host=host"]
 
     mock_exporter = mock.Mock()

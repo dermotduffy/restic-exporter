@@ -1,8 +1,9 @@
+"""Types used in Restic Exporter."""
 import attr
 from dateutil import parser as dateutil_parser
 import datetime
 import logging
-from typing import cast, Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from .const import (
     KEY_SNAPSHOT_HOSTNAME,
@@ -38,39 +39,44 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.level = logging.DEBUG
 
 
-def convert_type_or_none(cast_type: type, val: Any) -> Any:
-    return cast_type(val) if val is not None else val
-
-
 def convert_int_or_none(val: Optional[int]) -> Optional[int]:
+    """Convert to an int or None."""
     return int(val) if val is not None else val
 
 
 def convert_float_or_none(val: Optional[float]) -> Optional[float]:
+    """Convert to a float or None."""
     return float(val) if val is not None else val
 
 
 def convert_str_or_none(val: Optional[str]) -> Optional[str]:
+    """Convert to a str or None."""
     return str(val) if val is not None else val
 
 
 def validate_percent(_: Any, __: Any, val: Optional[float]) -> None:
+    """Validate a float % between 0-1."""
     if val is not None and (val < 0 or val > 1):
         raise ValueError(f"Not a valid percent: {val}")
 
 
 def validate_positive(_: Any, __: Any, val: Optional[Union[float, int]]) -> None:
+    """Validate a positive float/int."""
     if val is not None and (val < 0):
         raise ValueError(f"Expected positive number: {val}")
 
 
 def validate_non_empty_str(_: Any, __: Any, val: Optional[str]) -> None:
+    """Validate a non-empty string."""
+
     if val == "":
         raise ValueError(f"Expected non-empty string: {val}")
 
 
 @attr.s
 class ResticStats:
+    """Basic Restic statistics."""
+
     total_size: int = attr.ib(converter=int, validator=[validate_positive])
     total_file_count: int = attr.ib(converter=int, validator=[validate_positive])
     total_blob_count: Optional[int] = attr.ib(
@@ -79,6 +85,7 @@ class ResticStats:
 
 
 def json_to_stats(stats_json: Optional[Dict[str, Any]]) -> Optional[ResticStats]:
+    """Convert 'restic stats' JSON to a ResticStats object."""
     if not stats_json:
         return None
 
@@ -98,6 +105,8 @@ def json_to_stats(stats_json: Optional[Dict[str, Any]]) -> Optional[ResticStats]
 
 @attr.s
 class ResticStatsBundle:
+    """A bundle of Restic stats."""
+
     raw: Optional[ResticStats] = attr.ib(
         validator=attr.validators.instance_of(ResticStats)
     )
@@ -108,6 +117,8 @@ class ResticStatsBundle:
 
 @attr.s
 class ResticSnapshotKeys:
+    """A key representing a Restic snapshot."""
+
     hostname: str = attr.ib(
         validator=[attr.validators.instance_of(str), validate_non_empty_str]
     )
@@ -124,6 +135,8 @@ class ResticSnapshotKeys:
 
 @attr.s
 class ResticSnapshot:
+    """A Restic snapshot."""
+
     key: ResticSnapshotKeys = attr.ib(
         validator=attr.validators.instance_of(ResticSnapshotKeys)
     )
@@ -137,6 +150,7 @@ class ResticSnapshot:
 
 
 def json_to_snapshot(snapshot_json: Dict[str, Any]) -> Optional[ResticSnapshot]:
+    """Convert 'restic snapshots' JSON to a ResticStats object."""
     if not snapshot_json:
         return None
     try:
@@ -144,7 +158,7 @@ def json_to_snapshot(snapshot_json: Dict[str, Any]) -> Optional[ResticSnapshot]:
         try:
             snapshot_time = dateutil_parser.parse(snapshot_time)
         except (TypeError, dateutil_parser.ParserError):  # type: ignore
-            _LOGGER.warning(f"Skipping unparseable snapshot time: {snapshot_time}")
+            _LOGGER.warning(f"Skipping unparsable snapshot time: {snapshot_time}")
             return None
         return ResticSnapshot(
             key=ResticSnapshotKeys(
@@ -162,6 +176,8 @@ def json_to_snapshot(snapshot_json: Dict[str, Any]) -> Optional[ResticSnapshot]:
 
 @attr.s
 class ResticBackupStatus:
+    """Status of a Restic backup in progress."""
+
     key: ResticSnapshotKeys = attr.ib(
         validator=attr.validators.instance_of(ResticSnapshotKeys)
     )
@@ -187,6 +203,7 @@ class ResticBackupStatus:
 def json_to_backup_status(
     status_json: Dict[str, Any], key: ResticSnapshotKeys
 ) -> Optional[ResticBackupStatus]:
+    """Convert Restic backup status JSON messages to a ResticBackupStatus object."""
     if not status_json:
         return None
     try:
@@ -209,6 +226,8 @@ def json_to_backup_status(
 
 @attr.s
 class ResticBackupSummary:
+    """Status of a Restic backup completed."""
+
     key: ResticSnapshotKeys = attr.ib(
         validator=attr.validators.instance_of(ResticSnapshotKeys)
     )
@@ -227,6 +246,7 @@ class ResticBackupSummary:
 def json_to_backup_summary(
     summary_json: Dict[str, Any], key: ResticSnapshotKeys
 ) -> Optional[ResticBackupSummary]:
+    """Convert Restic backup summary JSON message to a ResticBackupStatus object."""
     if not summary_json:
         return None
     try:
