@@ -42,20 +42,22 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.level = logging.DEBUG
 
 
-# TODO restic args arbitrary (e.g. -r --repository_file)
 # TODO get restic tables as close to json output as possible.
 
 
 class ResticExecutor:
     """Executes restic commands."""
 
-    def __init__(self, path_binary: str) -> None:
+    def __init__(
+        self, restic_binary: str, restic_args: Optional[List[str]] = None
+    ) -> None:
         """Initialize Restic Executor."""
-        self._path_binary = path_binary
+        self._restic_binary = restic_binary
+        self._restic_args = restic_args or []
 
     def _run_command(self, args: List[str]) -> Any:
         """Run a Restic command."""
-        args = [self._path_binary, "--json"] + args
+        args = [self._restic_binary, "--json"] + self._restic_args + args
         _LOGGER.debug(f"Running: {args}")
         out = subprocess.run(args, capture_output=True)
         _LOGGER.debug(
@@ -195,13 +197,17 @@ class ResticStatsGenerator:
     #     return self._executor.get_stats(mode=mode)
 
 
+def split_arg(arg: str) -> Optional[List[str]]:
+    """Split an argument into multiple."""
+    if not arg:
+        return None
+    return re.split(r"[,\s]", arg)
+
+
 def get_snapshot_key_from_args(
     ap: argparse.ArgumentParser, args: argparse.Namespace
 ) -> ResticSnapshotKeys:
     """Generate a snapshot key from the command line arguments."""
-
-    def split_arg(arg: str) -> List[str]:
-        return re.split(r"[,\s]", arg)
 
     if args.backup_host is None:
         _LOGGER.error("Backup host must be provided (--backup-host)")
@@ -212,6 +218,8 @@ def get_snapshot_key_from_args(
         _LOGGER.error("Backup path must be provided (--backup-path)")
         ap.print_usage()
         ap.exit()
+    paths = split_arg(args.backup_path)
+    assert paths
 
     tags = None
     if args.backup_tag:
@@ -219,7 +227,7 @@ def get_snapshot_key_from_args(
 
     return ResticSnapshotKeys(
         hostname=args.backup_host,
-        paths=split_arg(args.backup_path),
+        paths=paths,
         tags=tags,
     )
 
@@ -228,7 +236,14 @@ def main() -> None:
     """Restic Exporter main."""
     ap = argparse.ArgumentParser()
     ap.add_argument(
-        "-r", "--restic_path", default="restic", help="Path to restic binary"
+        "--restic-binary",
+        default="restic",
+        help="Path to restic binary",
+    )
+    ap.add_argument(
+        "--restic-args",
+        help="Arbitrary argument to pass to restic calls (comma/space separated)",
+        default=None,
     )
     ap.add_argument(
         "-l",
@@ -287,7 +302,9 @@ def main() -> None:
             exporters.append(exporter)
 
     generator = ResticStatsGenerator(
-        executor=ResticExecutor(path_binary=args.restic_path),
+        executor=ResticExecutor(
+            restic_binary=args.restic_binary, restic_args=split_arg(args.restic_args)
+        ),
         group_by=args.group_by,
         last=not args.all,
         backup_status_window_seconds=args.backup_status_window_seconds,
