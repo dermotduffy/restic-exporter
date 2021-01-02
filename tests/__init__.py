@@ -1,3 +1,5 @@
+"""Testing for Restic Exporter."""
+
 from typing import Any, Dict
 
 TEST_STATS_DATA_RAW = {"total_size": 1709, "total_file_count": 1, "total_blob_count": 4}
@@ -56,4 +58,5 @@ TEST_BACKUP_SUMMARY_DATA = {
 
 
 def dict_without(data: Dict[str, Any], omit_key: str) -> Dict[str, Any]:
+    """Return a dictionary without a given key if present."""
     return {k: data[k] for k in data if k != omit_key}

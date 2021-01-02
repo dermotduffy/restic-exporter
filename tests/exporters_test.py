@@ -1,4 +1,4 @@
-"""Test for the restic-exporter exporters"""
+"""Tests for the Restic Rxporter exporters."""
 import argparse
 import datetime
 import dateutil
@@ -25,6 +25,7 @@ _LOGGER.setLevel(logging.DEBUG)
 
 
 def test_exporter_add_args_to_parser() -> None:
+    """Test Exporter.add_args_to_parser()."""
     ap = argparse.ArgumentParser()
     Exporter.add_args_to_parser(ap)
     args = ap.parse_args("")
@@ -32,21 +33,25 @@ def test_exporter_add_args_to_parser() -> None:
 
 
 def test_exporter_construct_from_args() -> None:
+    """Test Exporter.construct_from_args()."""
     ap = argparse.Namespace()
     assert Exporter.construct_from_args(ap) is None
 
 
 def test_exporter_start() -> None:
+    """Test Exporter.start()."""
     exporter = Exporter()
     exporter.start()
 
 
 def test_exporter_export() -> None:
+    """Test Exporter.export()."""
     exporter = Exporter()
     exporter.export("will_be_ignored")
 
 
 def test_exporter_get_password(tmp_path: str) -> None:
+    """Test Exporter.get_password()."""
     password_env = "TEST_ENV_VAR"
     os.environ[password_env] = "test_password"
 
@@ -62,6 +67,7 @@ def test_exporter_get_password(tmp_path: str) -> None:
 
 
 def test_exporter_influxdb_add_args_to_parser() -> None:
+    """Test ExporterInfluxDB.add_args_to_parser()."""
     exporter_class = EXPORTERS[EXPORTER_INFLUXDB]
     ap = argparse.ArgumentParser()
     exporter_class.add_args_to_parser(ap)
@@ -74,6 +80,7 @@ def test_exporter_influxdb_add_args_to_parser() -> None:
 
 
 def test_exporter_influxdb_construct_from_args() -> None:
+    """Test ExporterInfluxDB.construct_from_args()."""
     exporter_class = EXPORTERS[EXPORTER_INFLUXDB]
     ap = argparse.ArgumentParser()
     exporter_class.add_args_to_parser(ap)
@@ -89,6 +96,7 @@ def test_exporter_influxdb_construct_from_args() -> None:
 def setup_test_influxdb_exporter(
     mock_influxdb: mock.Mock,
 ) -> Tuple[Exporter, mock.Mock]:
+    """Create a test InfluxDB exporter."""
     exporter = EXPORTERS[EXPORTER_INFLUXDB](
         host="test_host",
         port=1234,
@@ -113,6 +121,7 @@ def setup_test_influxdb_exporter(
 
 @mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
 def test_exporter_influxdb_start(mock_influxdb: mock.Mock) -> None:
+    """Test ExporterInfluxDB.start()."""
     (_, _) = setup_test_influxdb_exporter(mock_influxdb)
 
 
@@ -121,6 +130,7 @@ def test_exporter_influxdb_start(mock_influxdb: mock.Mock) -> None:
 def test_exporter_influxdb_export_restic_backup_status(
     mock_current_datetime: mock.Mock, mock_influxdb: mock.Mock
 ) -> None:
+    """Test ExporterInfluxDB.export() for backup status."""
     (exporter, mock_influxdb_client) = setup_test_influxdb_exporter(mock_influxdb)
 
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
@@ -163,6 +173,7 @@ def test_exporter_influxdb_export_restic_backup_status(
 def test_exporter_influxdb_export_restic_backup_summary(
     mock_current_datetime: mock.Mock, mock_influxdb: mock.Mock
 ) -> None:
+    """Test ExporterInfluxDB.export() for backup summary."""
     (exporter, mock_influxdb_client) = setup_test_influxdb_exporter(mock_influxdb)
 
     backup_summary = ResticBackupSummary(
@@ -219,6 +230,7 @@ def test_exporter_influxdb_export_restic_backup_summary(
 
 @mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
 def test_exporter_influxdb_export_restic_snapshot(mock_influxdb: mock.Mock) -> None:
+    """Test ExporterInfluxDB.export() for snapshots."""
     (exporter, mock_influxdb_client) = setup_test_influxdb_exporter(mock_influxdb)
 
     snapshot = ResticSnapshot(
@@ -263,6 +275,7 @@ def test_exporter_influxdb_export_restic_snapshot(mock_influxdb: mock.Mock) -> N
 def test_exporter_influxdb_export_unknown(
     mock_influxdb: mock.Mock, caplog: Any
 ) -> None:
+    """Test ExporterInfluxDB.export() for unknown stats types."""
     (exporter, mock_influxdb_client) = setup_test_influxdb_exporter(mock_influxdb)
 
     exporter.export("this_is_not_an_expected_type")

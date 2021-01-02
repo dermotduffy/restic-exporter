@@ -1,4 +1,4 @@
-"""Test for the restic-exporter types"""
+"""Test for the Restic Exporter types."""
 import datetime
 import dateutil
 import pytest  # type: ignore
@@ -32,6 +32,7 @@ _LOGGER.setLevel(logging.DEBUG)
 
 
 def test_json_to_stats(caplog: Any) -> None:
+    """Test json_to_stats()."""
     # Test: Normal.
     assert json_to_stats(
         {"total_size": 1709, "total_file_count": 1, "total_blob_count": 4}
@@ -74,6 +75,7 @@ def test_json_to_stats(caplog: Any) -> None:
 
 
 def test_json_to_snapshot(caplog: Any) -> None:
+    """Test json_to_snapshot()."""
     # Test: Normal.
     assert json_to_snapshot(TEST_SNAPSHOT_DATA) == ResticSnapshot(
         ResticSnapshotKeys(
@@ -101,6 +103,7 @@ def test_json_to_snapshot(caplog: Any) -> None:
 
 
 def test_json_to_backup_status(caplog: Any) -> None:
+    """Test json_to_backup_status()."""
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
 
     # Test: Normal.
@@ -142,6 +145,7 @@ def test_json_to_backup_status(caplog: Any) -> None:
 
 
 def test_json_to_backup_summary(caplog: Any) -> None:
+    """Test json_to_backup_summary()."""
     key = ResticSnapshotKeys(hostname="hostname", paths=["path1"])
 
     # Test: Normal.
@@ -184,7 +188,7 @@ def test_json_to_backup_summary(caplog: Any) -> None:
 
 
 def test_restic_snapshot_keys_validation() -> None:
-
+    """Test that snapshots require valid keys."""
     # Test: Normal.
     assert ResticSnapshotKeys(hostname="hostname", paths=["path1"]) is not None
 

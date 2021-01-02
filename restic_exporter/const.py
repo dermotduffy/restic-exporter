@@ -1,3 +1,5 @@
+"""Consts for the Restic Exporter."""
+
 KEY_SNAPSHOT_TIME = "time"
 KEY_SNAPSHOT_PATHS = "paths"
 KEY_SNAPSHOT_HOSTNAME = "hostname"
