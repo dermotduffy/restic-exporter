@@ -18,6 +18,7 @@ from restic_exporter.restic_exporter import (
 )
 from restic_exporter.types import (
     ResticBackupStatus,
+    ResticRepo,
     ResticSnapshotKeys,
     ResticStatsBundle,
     json_to_backup_status,
@@ -268,6 +269,38 @@ def test_restic_stats_generator_get_piped_stats_backup_summary() -> None:
     assert stats == []
 
 
+def test_restic_stats_generator_get_repo_stats() -> None:
+    """Test the Restic stats generator get_repo_stats() method."""
+    mock_executor = mock.Mock()
+    generator = ResticStatsGenerator(
+        mock_executor, group_by="group_by", last=True, backup_status_window_seconds=10
+    )
+
+    mock_executor.get_stats = mock.Mock(
+        side_effect=[
+            json_to_stats(TEST_STATS_DATA_RAW),
+            json_to_stats(TEST_STATS_DATA_RESTORE),
+        ]
+    )
+
+    stats = generator.get_repo_stats()
+    assert stats == [
+        ResticRepo(
+            stats=ResticStatsBundle(
+                raw=json_to_stats(TEST_STATS_DATA_RAW),
+                restore=json_to_stats(TEST_STATS_DATA_RESTORE),
+            )
+        )
+    ]
+
+    mock_executor.get_stats.assert_has_calls(
+        [
+            mock.call(mode=KEY_MODE_RAW_DATA),
+            mock.call(mode=KEY_MODE_RESTORE_SIZE),
+        ]
+    )
+
+
 def test_get_snapshot_key_from_args(caplog: Any) -> None:
     """Test generating a snapshot key from command line arguments."""
 
@@ -328,6 +361,7 @@ def test_main_tty(caplog: Any) -> None:
 
     mock_generator = mock.Mock()
     mock_generator.get_snapshot_stats = mock.Mock(return_value=["stats_here"])
+    mock_generator.get_repo_stats = mock.Mock(return_value=["repo_stats_here"])
 
     with mock.patch.dict(
         restic_exporter.exporters.EXPORTERS,
@@ -343,7 +377,7 @@ def test_main_tty(caplog: Any) -> None:
 
     assert mock_exporter.add_args_to_parser.called
     assert mock_exporter.start.called
-    mock_exporter.export.assert_called_with(["stats_here"])
+    mock_exporter.export.assert_called_with(["stats_here", "repo_stats_here"])
 
 
 def test_main_not_tty(caplog: Any) -> None:

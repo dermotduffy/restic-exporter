@@ -228,7 +228,7 @@ def json_to_backup_status(
 
 @attr.s
 class ResticBackupSummary:
-    """Status of a Restic backup completed."""
+    """Summary of a Restic backup completed."""
 
     key: ResticSnapshotKeys = attr.ib(
         validator=attr.validators.instance_of(ResticSnapshotKeys)
@@ -275,3 +275,12 @@ def json_to_backup_summary(
     except ValueError as ex:
         _LOGGER.warning(f"Skipping backup summary with invalid value: {ex}")
     return None
+
+
+@attr.s
+class ResticRepo:
+    """Restic repository statistics."""
+
+    stats: ResticStatsBundle = attr.ib(
+        validator=attr.validators.instance_of(ResticStatsBundle),
+    )

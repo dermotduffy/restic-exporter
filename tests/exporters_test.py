@@ -13,6 +13,7 @@ from restic_exporter.exporters import Exporter, EXPORTERS
 from restic_exporter.types import (
     ResticBackupStatus,
     ResticBackupSummary,
+    ResticRepo,
     ResticSnapshot,
     ResticSnapshotKeys,
     ResticStats,
@@ -265,6 +266,44 @@ def test_exporter_influxdb_export_restic_snapshot(mock_influxdb: mock.Mock) -> N
                 "time": snapshot.snapshot_time,
                 "fields": {
                     "short_id": "1234",
+                    "raw_size": 1709,
+                    "raw_file_count": 1,
+                    "restore_size": 1710,
+                    "restore_file_count": 2,
+                },
+            }
+        ]
+    )
+
+
+@mock.patch("restic_exporter.exporters.influxdb.InfluxDBClient")
+@mock.patch("restic_exporter.exporters.get_current_datetime")
+def test_exporter_influxdb_export_repo(
+    mock_current_datetime: mock.Mock, mock_influxdb: mock.Mock
+) -> None:
+    """Test ExporterInfluxDB.export() for repo stats."""
+    (exporter, mock_influxdb_client) = setup_test_influxdb_exporter(mock_influxdb)
+
+    repo = ResticRepo(
+        stats=ResticStatsBundle(
+            raw=ResticStats(total_size=1709, total_file_count=1, total_blob_count=None),
+            restore=ResticStats(
+                total_size=1710, total_file_count=2, total_blob_count=None
+            ),
+        ),
+    )
+
+    current_datetime = datetime.datetime(2020, 12, 30, 8, 27, 23)
+    mock_current_datetime.return_value = current_datetime
+
+    exporter.export([repo])
+
+    mock_influxdb_client.write_points.assert_called_with(
+        [
+            {
+                "measurement": "restic_repo",
+                "time": current_datetime,
+                "fields": {
                     "raw_size": 1709,
                     "raw_file_count": 1,
                     "restore_size": 1710,

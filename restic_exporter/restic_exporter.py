@@ -28,6 +28,7 @@ from .exporters import EXPORTERS
 from .types import (
     ResticBackupStatus,
     ResticBackupSummary,
+    ResticRepo,
     ResticSnapshot,
     ResticSnapshotKeys,
     ResticStats,
@@ -189,9 +190,16 @@ class ResticStatsGenerator:
             )
         return snapshots
 
-    # TODO: Add repo stats.
-    # def _get_repo_stats(self, mode) -> ResticStats:
-    #     return self._executor.get_stats(mode=mode)
+    def get_repo_stats(self) -> List[ResticRepo]:
+        """Get Restic repository statistics."""
+        return [
+            ResticRepo(
+                stats=ResticStatsBundle(
+                    raw=self._executor.get_stats(mode=KEY_MODE_RAW_DATA),
+                    restore=self._executor.get_stats(mode=KEY_MODE_RESTORE_SIZE),
+                )
+            )
+        ]
 
 
 def split_arg(arg: str) -> Optional[List[str]]:
@@ -307,7 +315,9 @@ def main() -> None:
         backup_status_window_seconds=args.backup_status_window_seconds,
     )
 
-    stats: List[Union[ResticBackupStatus, ResticBackupSummary, ResticSnapshot]] = []
+    stats: List[
+        Union[ResticBackupStatus, ResticBackupSummary, ResticRepo, ResticSnapshot]
+    ] = []
 
     if not sys.stdin.isatty():
         key = get_snapshot_key_from_args(ap, args)
@@ -320,6 +330,7 @@ def main() -> None:
                 exporter.export(stats)
     else:
         stats.extend(generator.get_snapshot_stats())
+        stats.extend(generator.get_repo_stats())
         for exporter in exporters:
             exporter.export(stats)
 

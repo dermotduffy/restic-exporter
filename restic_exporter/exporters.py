@@ -41,14 +41,17 @@ from .const import (
     KEY_SUMMARY_TREE_BLOBS,
     MEASUREMENT_BACKUP_STATUS,
     MEASUREMENT_BACKUP_SUMMARY,
+    MEASUREMENT_REPO,
     MEASUREMENT_SNAPSHOTS,
 )
 
 from .types import (
     ResticBackupStatus,
     ResticBackupSummary,
+    ResticRepo,
     ResticSnapshot,
     ResticSnapshotKeys,
+    ResticStatsBundle,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -214,30 +217,52 @@ class ExporterInfluxDB(Exporter):
                 out[key] = value
         return out
 
+    def _get_fields_from_stats_bundle(
+        self, stats_bundle: ResticStatsBundle
+    ) -> Dict[str, Any]:
+        """Get the Influx fields from a stats bundle."""
+        fields = {}
+        if stats_bundle.raw:
+            fields.update(
+                {
+                    KEY_RAW_SIZE: stats_bundle.raw.total_size,
+                    KEY_RAW_FILE_COUNT: stats_bundle.raw.total_file_count,
+                }
+            )
+            fields.update(
+                self._add_optional_fields(
+                    {
+                        KEY_RAW_BLOB_COUNT: stats_bundle.raw.total_blob_count,
+                    }
+                )
+            )
+
+        if stats_bundle.restore:
+            fields.update(
+                {
+                    KEY_RESTORE_SIZE: stats_bundle.restore.total_size,
+                    KEY_RESTORE_FILE_COUNT: stats_bundle.restore.total_file_count,
+                }
+            )
+            fields.update(
+                self._add_optional_fields(
+                    {
+                        KEY_RESTORE_BLOB_COUNT: stats_bundle.restore.total_blob_count,
+                    }
+                )
+            )
+
+        return fields
+
     def _export_snapshot(self, snapshot: ResticSnapshot) -> List[Dict[str, Any]]:
         """Export a snapshot object."""
-        assert snapshot.stats is not None
+
         fields = {
             KEY_SNAPSHOT_SHORT_ID: snapshot.key.snapshot_id,
         }
-        optional_fields = {}
-        if snapshot.stats.raw:
-            optional_fields.update(
-                {
-                    KEY_RAW_SIZE: snapshot.stats.raw.total_size,
-                    KEY_RAW_FILE_COUNT: snapshot.stats.raw.total_file_count,
-                    KEY_RAW_BLOB_COUNT: snapshot.stats.raw.total_blob_count,
-                }
-            )
-        if snapshot.stats.restore:
-            optional_fields.update(
-                {
-                    KEY_RESTORE_SIZE: snapshot.stats.restore.total_size,
-                    KEY_RESTORE_FILE_COUNT: snapshot.stats.restore.total_file_count,
-                    KEY_RESTORE_BLOB_COUNT: snapshot.stats.restore.total_blob_count,
-                }
-            )
-        fields.update(self._add_optional_fields(optional_fields))
+
+        assert snapshot.stats is not None
+        fields.update(self._get_fields_from_stats_bundle(snapshot.stats))
 
         point = {
             "measurement": MEASUREMENT_SNAPSHOTS,
@@ -307,6 +332,19 @@ class ExporterInfluxDB(Exporter):
         }
         return [point]
 
+    def _export_repo(self, repo: ResticRepo) -> List[Dict[str, Any]]:
+        """Export a backup summary object."""
+        fields = self._get_fields_from_stats_bundle(repo.stats)
+        if not fields:
+            return []
+
+        point = {
+            "measurement": MEASUREMENT_REPO,
+            "time": get_current_datetime(),
+            "fields": fields,
+        }
+        return [point]
+
     def export(self, stats: List[Any]) -> None:
         """Export a statistics object."""
         points = []
@@ -317,6 +355,8 @@ class ExporterInfluxDB(Exporter):
                 points.extend(self._export_backup_summary(stat))
             elif isinstance(stat, ResticSnapshot):
                 points.extend(self._export_snapshot(stat))
+            elif isinstance(stat, ResticRepo):
+                points.extend(self._export_repo(stat))
             else:
                 _LOGGER.warning(f"ExporterInfluxDB cannot handle stats of type: {stat}")
         self._submit_points(points)
