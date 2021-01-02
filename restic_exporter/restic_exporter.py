@@ -184,8 +184,7 @@ class ResticStatsGenerator:
             group_by=self._group_by, last=self._last
         )
         for snapshot in snapshots:
-            if not snapshot.key.snapshot_id:
-                continue
+            assert snapshot.key.snapshot_id
             snapshot.stats = ResticStatsBundle(
                 raw=self._executor.get_stats(
                     snapshot_ids=[snapshot.key.snapshot_id], mode=KEY_MODE_RAW_DATA
